@@ -1,5 +1,7 @@
 const express = require('express');
 const pool = require('./core/db_connection');
+const createPool = require('./core/db_connection')
+const checkDBConnection = require('./core/db_check_connection')
 const cors = require('cors')
 const app = express();
 
@@ -78,7 +80,12 @@ app.post('/get-events', async (req, res) => {
   }
 
   try {
-    const [rows] = await pool.execute(query, values);
+    const pool2 = createPool()
+    const connection = await pool2.getConnection();
+    const [rows] = await connection.query(query);
+    connection.release();
+    console.log(rows)
+    // const [rows] = await pool.execute(query, values);
     res.status(200).json(rows);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -89,9 +96,15 @@ app.get('/get-updates', async (req, res) => {
   return res.status(201).json({ status: 'stat is working' });
 });
 
-const PORT = process.env.PORT || 3230;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// const PORT = process.env.PORT || 3230;
+// app.listen(PORT, () => {
+//   console.log(`Server is running on port ${PORT}`);
+// });
 
-module.exports = app;
+(async () => {
+  await checkDBConnection();
+  const PORT = process.env.PORT || 10000;
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+})();

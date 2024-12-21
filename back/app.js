@@ -9,7 +9,6 @@ const bodyParser = require('body-parser');
 app.use(cors());
 app.use(bodyParser.json());
 
-// Add Event API (POST and GET)
 app.post('/add-event', async (req, res) => {
   const { projectId, namespace, stage, isError, eventData, eventDate } = req.body;
   if (!projectId || !namespace || !stage) {

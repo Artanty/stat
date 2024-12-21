@@ -85,6 +85,10 @@ app.post('/get-events', async (req, res) => {
   }
 });
 
+app.get('/get-updates', async (req, res) => {
+  return res.status(201).json({ status: 'stat is working' });
+});
+
 const PORT = process.env.PORT || 3230;
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

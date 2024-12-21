@@ -11,13 +11,13 @@ app.use(bodyParser.json());
 
 // Add Event API (POST and GET)
 app.post('/add-event', async (req, res) => {
-  const { projectId, namespace, state, isError, eventData, eventDate } = req.body;
-  if (!projectId || !namespace || !state) {
-    return res.status(400).json({ error: 'projectId, namespace, and state are required' });
+  const { projectId, namespace, stage, isError, eventData, eventDate } = req.body;
+  if (!projectId || !namespace || !stage) {
+    return res.status(400).json({ error: 'projectId, namespace, and stage are required' });
   }
 
-  const query = 'INSERT INTO events (projectId, namespace, state, isError, eventData, eventDate) VALUES (?, ?, ?, ?, ?, ?)';
-  const values = [projectId, namespace, state, isError || false, eventData || '', eventDate || new Date().toISOString()];
+  const query = 'INSERT INTO events (projectId, namespace, stage, isError, eventData, eventDate) VALUES (?, ?, ?, ?, ?, ?)';
+  const values = [projectId, namespace, stage, isError || false, eventData || '', eventDate || new Date().toISOString()];
 
 
   try {
@@ -29,13 +29,13 @@ app.post('/add-event', async (req, res) => {
 });
 
 app.get('/add-event', async (req, res) => {
-  const { projectId, namespace, state, isError, eventData, eventDate } = req.query;
-  if (!projectId || !namespace || !state) {
-    return res.status(400).json({ error: 'projectId, namespace, and state are required' });
+  const { projectId, namespace, stage, isError, eventData, eventDate } = req.query;
+  if (!projectId || !namespace || !stage) {
+    return res.status(400).json({ error: 'projectId, namespace, and stage are required' });
   }
 
-  const query = 'INSERT INTO events (projectId, namespace, state, isError, eventData, eventDate) VALUES (?, ?, ?, ?, ?, ?)';
-  const values = [projectId, namespace, state, isError || false, eventData || '', eventDate || new Date().toISOString()];
+  const query = 'INSERT INTO events (projectId, namespace, stage, isError, eventData, eventDate) VALUES (?, ?, ?, ?, ?, ?)';
+  const values = [projectId, namespace, stage, isError || false, eventData || '', eventDate || new Date().toISOString()];
 
   try {
     const [result] = await pool.execute(query, values);
@@ -47,7 +47,7 @@ app.get('/add-event', async (req, res) => {
 
 // Get Events API (POST)
 app.post('/get-events', async (req, res) => {
-  const { id, projectId, namespace, state, isError, date } = req.body;
+  const { id, projectId, namespace, stage, isError, date } = req.body;
   let query = 'SELECT * FROM events';
   const conditions = [];
   const values = [];
@@ -64,9 +64,9 @@ app.post('/get-events', async (req, res) => {
     conditions.push('namespace = ?');
     values.push(namespace);
   }
-  if (state) {
-    conditions.push('state = ?');
-    values.push(state);
+  if (stage) {
+    conditions.push('stage = ?');
+    values.push(stage);
   }
   if (isError !== undefined) {
     conditions.push('isError = ?');

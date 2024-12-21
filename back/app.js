@@ -43,7 +43,6 @@ app.get('/add-event', async (req, res) => {
   }
 });
 
-// Get Events API (POST)
 app.post('/get-events', async (req, res) => {
   const { id, projectId, namespace, stage, isError, date } = req.body;
   let query = 'SELECT * FROM events';

@@ -1,0 +1,35 @@
+{
+  "name": "web",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "parcel index.html --open",
+    "build": "parcel build index.html"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@babel/core": "^7.26.0",
+    "@opd/g2plot-react": "^2.13.4",
+    "dotenv": "^16.4.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-grid-layout": "^1.5.0",
+    "react-use-measure": "^2.1.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.1",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "buffer": "^6.0.3",
+    "flow-bin": "^0.253.0",
+    "parcel": "^2.13.0",
+    "parcel-bundler": "^1.12.5",
+    "path-browserify": "^1.0.1",
+    "stream-browserify": "^3.0.0",
+    "typescript": "^5.6.3"
+  }
+}

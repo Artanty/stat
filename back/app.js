@@ -2,6 +2,7 @@ const express = require('express');
 const pool = require('./core/db_connection');
 const cors = require('cors')
 const app = express();
+
 app.use(express.json());
 const bodyParser = require('body-parser');
 app.use(cors());

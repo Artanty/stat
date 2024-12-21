@@ -19,7 +19,6 @@ app.post('/add-event', async (req, res) => {
   const query = 'INSERT INTO events (projectId, namespace, stage, isError, eventData, eventDate) VALUES (?, ?, ?, ?, ?, ?)';
   const values = [projectId, namespace, stage, isError || false, eventData || '', eventDate || new Date().toISOString()];
 
-
   try {
     const [result] = await pool.execute(query, values);
     res.status(201).json({ id: result.insertId });

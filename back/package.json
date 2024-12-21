@@ -1,4 +1,11 @@
-{ 
+{
+  "name": "stat",
+  "version": "1.0.0",
+  "description": "",
+  "main": "app.js",
+  "keywords": [],
+  "author": "Artanty",
+  "license": "ISC",
   "scripts": {
     "start": "node app.js"
   },

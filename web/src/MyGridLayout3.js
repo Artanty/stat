@@ -6,7 +6,8 @@ const components = {
   // Card: React.lazy(() => import('./Card')),
   // Card2: React.lazy(() => import('./Card2')),
   // Card3: React.lazy(() => import('./Card3')),
-  Card4: React.lazy(() => import('./Card4')),
+  // Card4: React.lazy(() => import('./Card4')),
+  Card5: React.lazy(() => import('./Card5')),
 };
 
 const ResponsiveReactGridLayout = WidthProvider(Responsive);

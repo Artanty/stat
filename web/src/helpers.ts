@@ -37,9 +37,22 @@ export function formatDate(
       if (formatConfig.minutes) timePart.push(minutes);
       parts.push(timePart.join(':'));
   }
-
+  let formattedDate = ''
   // Join the parts with dots and spaces as needed
-  const formattedDate = parts.join('.');
+  if (formatConfig.day && formatConfig.month && formatConfig.year && (formatConfig.hours || formatConfig.minutes)) {
+    formattedDate = parts.slice(0,2).join('.') + ' ' + parts[3];
+  } else {
+    formattedDate = parts.join('.');
+  }  
 
   return formattedDate;
 }
+
+
+export const swapObject = (obj) => {
+  const swappedObj = {};
+  for (const [key, value] of Object.entries(obj)) {
+    swappedObj[value] = key;
+  }
+  return swappedObj;
+};

@@ -58,5 +58,8 @@ fetch('https://gw.alipayobjects.com/os/antfincdn/8elHX%26irfq/stack-column-data.
   https://g2plot.antv.antgroup.com/en/examples/case/customize/#desire-heatmap
 
 
-  COMMIT
-  
+  Label from:
+  https://g2plot-v1.antv.vision/en/examples/advanced/connection
+
+  stopped at:
+  https://g2plot.antv.antgroup.com/en/examples/component/annotation/#line-annotation-position

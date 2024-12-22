@@ -12,26 +12,6 @@ const fs = require('fs').promises; // Use promises for fs to handle asynchronous
 const os = require('os');
 const axios = require('axios');
 
-
-app.post('/table-update', async (req, res) => {
-  const { app_name, query, DB_SYNC_MODE_FORCE } = req.body;
-  const tableName = query.match(/ALTER TABLE\s+(\w+)/i)[1];
-  const fullTableName = `${app_name}__${tableName}`;
-
-  try {
-    const pool = createPool()
-    const connection = await pool.getConnection();
-    if (DB_SYNC_MODE_FORCE) {
-      await connection.query(`DELETE FROM ${fullTableName}`);
-    }
-    await connection.query(query.replace(tableName, fullTableName));
-    connection.release();
-    res.send(`Table ${fullTableName} updated successfully`);
-  } catch (error) {
-    res.status(500).send(error.message);
-  }
-});
-
 app.post('/get-events', async (req, res) => {
   const { id, projectId, namespace, stage, isError, date } = req.body;
   let query = 'SELECT * FROM events';
@@ -47,6 +27,46 @@ app.post('/get-events', async (req, res) => {
       res.status(404).send(`Table events doesn't exist`);
     } else if (error.code === 'ECONNREFUSED') {
       const publicIP = await getPublicIP()
+      res.status(404).send(`Can't connect to database. Add IP of this backend: ${publicIP} to permitted.`);
+    } else {
+      res.status(500).send(error.message);
+    }
+  }
+});
+ 
+
+app.post('/add-event', async (req, res) => {
+  const { projectId, namespace, stage, isError, eventData, eventDate } = req.body;
+
+  // Validate required fields
+  if (!projectId || !namespace || !stage) {
+    return res.status(400).json({ error: 'projectId, namespace, and stage are required' });
+  }
+
+  // Prepare query and values
+  const query = 'INSERT INTO events (projectId, namespace, stage, isError, eventData, eventDate) VALUES (?, ?, ?, ?, ?, ?)';
+  const values = [projectId, namespace, stage, isError || false, eventData || '', eventDate || new Date().toISOString()];
+
+  try {
+    // Get a connection from the pool
+    const pool = createPool();
+    const connection = await pool.getConnection();
+
+    // Execute the query
+    const [result] = await connection.query(query, values);
+
+    // Release the connection back to the pool
+    connection.release();
+
+    // Return the newly inserted event ID
+    res.status(201).json({ id: result.insertId });
+  } catch (error) {
+    // Handle specific errors
+    console.log(error);
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      res.status(404).send(`Table events doesn't exist`);
+    } else if (error.code === 'ECONNREFUSED') {
+      const publicIP = await getPublicIP();
       res.status(404).send(`Can't connect to database. Add IP of this backend: ${publicIP} to permitted.`);
     } else {
       res.status(500).send(error.message);

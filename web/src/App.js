@@ -6,7 +6,6 @@ import MyGridLayout2 from './MyGridLayout2';
 export function App() {
     
 
-
     return (
     <div>
         

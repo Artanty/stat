@@ -4,7 +4,6 @@ require('dotenv').config();
 let pool
 
 function createPool () {
-  console.log(process.env.DB_DATABASE, process.env.DB_USERNAME, process.env.DB_PASSWORD, process.env.DB_HOST)
   if (!pool) {
     console.log('Creatig DB pool...')
     const thisPool = mysql.createPool({
@@ -14,8 +13,7 @@ function createPool () {
       host: process.env.DB_HOST,
       waitForConnections: true,
       connectionLimit: 10,
-      queueLimit: 0,
-      connectTimeout: 30000,
+      queueLimit: 0
     });
     pool = thisPool
   }

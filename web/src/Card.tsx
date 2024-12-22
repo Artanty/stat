@@ -9,6 +9,7 @@ const LineChartComponent = () => {
   const [error, setError] = useState(null);
   const chartRef = useRef();
 
+  
   useEffect(() => {
     const getData = async () => {
       try {

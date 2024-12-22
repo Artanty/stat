@@ -11,24 +11,7 @@ app.use(bodyParser.json());
 const fs = require('fs').promises; // Use promises for fs to handle asynchronous operations
 const os = require('os');
 const axios = require('axios');
-// Middleware to check if the request method is POST
-// app.use((req, res, next) => {
-//   if (req.method === 'POST') {
-//     next();
-//   } else {
-//     res.status(405).send('Only POST requests are allowed');
-//   }
-// });
-const DB_NAME = 'cs99850_bag'
-// app.get('/get-updates', async (req, res) => {
-//   try {
-//     // res.send(`ready`);
-//     const [rows] = await pool.query('SELECT * FROM NOY__requests');
-//     res.json(rows);
-//   } catch (error) {
-//     res.status(500).send(error.message);
-//   }
-// });
+
 
 app.post('/table-update', async (req, res) => {
   const { app_name, query, DB_SYNC_MODE_FORCE } = req.body;
@@ -46,6 +29,28 @@ app.post('/table-update', async (req, res) => {
     res.send(`Table ${fullTableName} updated successfully`);
   } catch (error) {
     res.status(500).send(error.message);
+  }
+});
+
+app.post('/get-events', async (req, res) => {
+  const { id, projectId, namespace, stage, isError, date } = req.body;
+  let query = 'SELECT * FROM events';
+  try {
+    const pool = createPool()
+    const connection = await pool.getConnection();
+    const [rows] = await connection.query(query);
+    connection.release();
+    res.json(rows)
+  } catch (error) {
+    console.log(error)
+    if (error.code === 'ER_NO_SUCH_TABLE') {
+      res.status(404).send(`Table events doesn't exist`);
+    } else if (error.code === 'ECONNREFUSED') {
+      const publicIP = await getPublicIP()
+      res.status(404).send(`Can't connect to database. Add IP of this backend: ${publicIP} to permitted.`);
+    } else {
+      res.status(500).send(error.message);
+    }
   }
 });
 
@@ -101,7 +106,13 @@ app.post('/table-query', async (req, res) => {
 });
 
 app.get('/get-updates', async (req, res) => {
-  res.json({ BAG__STATUS: 'working1', database: process.env.DB_DATABASE })
+  const publicIP = await getPublicIP()
+  res.json({ 
+    STAT__STATUS: 'working1', 
+    database: process.env.DB_DATABASE,
+    id: publicIP,
+    PORT: process.env.PORT
+   })
 })
 
 async function getPublicIP() {

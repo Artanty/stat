@@ -33,7 +33,6 @@ app.post('/get-events', async (req, res) => {
     }
   }
 });
- 
 
 app.post('/add-event', async (req, res) => {
   const { projectId, namespace, stage, isError, eventData, eventDate } = req.body;

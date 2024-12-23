@@ -45,8 +45,6 @@ app.get('/add-event', async (req, res) => {
   }
 });
 
-
-
 app.post('/get-events', async (req, res) => {
   const { id, projectId, namespace, stage, isError, date } = req.body;
   let query = 'SELECT * FROM events';

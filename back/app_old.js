@@ -98,10 +98,7 @@ app.get('/get-updates', async (req, res) => {
 });
 
 
-// const PORT = process.env.PORT || 3230;
-// app.listen(PORT, () => {
-//   console.log(`Server is running on port ${PORT}`);
-// });
+
 
 (async () => {
   await checkDBConnection();

@@ -104,63 +104,32 @@ app.post('/add-event', async (req, res) => {
   }
 });
 
-app.post('/table-query', async (req, res) => {
-  console.log('table-query req url: ' + req.originalUrl)
-  
-  let { app_name, query } = req.body;
-
-  if (query.trim().toUpperCase().startsWith('SELECT TABLE_NAME')) {
-    // Replace the table_schema placeholder with the actual database name from the environment variable
-    const dbName = process.env.DB_DATABASE;
-    query = query.replace('table_schema = ?', `table_schema = "${dbName}"`);
-    // Check for table_name IN (...) pattern and rename table names inside
-    const inPattern = /table_name\s+IN\s+\(([^)]+)\)/i;
-    const inMatch = query.match(inPattern);
-    if (inMatch) {
-      const tableNamesIn = inMatch[1].split(',').map(name => name.trim().replace(/['"]/g, ''));
-      const renamedTableNames = tableNamesIn.map(name => `'${app_name}__${name}'`).join(', ');
-      query = query.replace(inPattern, `table_name IN (${renamedTableNames})`);
-    }
-  } else if (query.trim().toUpperCase().startsWith('CREATE TABLE')) {
-    const tableName = query.match(/TABLE\s+(\w+)/i)[1];
-    const fullTableName = `${app_name}__${tableName}`;
-    query = query.replace(tableName, fullTableName)
-  } else {
-    // Match table names in various SQL statements
-    const tableNameMatch = query.match(/(?:INSERT INTO|UPDATE|DELETE FROM|FROM)\s+(\w+)/i);
-    if (!tableNameMatch) {
-      return res.status(400).send('Invalid SQL query: Could not find a table name');
-    }
-    const tableName = tableNameMatch[1];
-    const fullTableName = `${app_name}__${tableName}`;
-    query = query.replace(tableName, fullTableName)
-  }
-
+async function sendRuntimeEventToStat(triggerIP) {
   try {
-    const pool = createPool()
-    const connection = await pool.getConnection();
-    const [rows] = await connection.query(query);
-    connection.release();
-    res.json(rows)
-  } catch (error) {
-    console.log(error)
-    if (error.code === 'ER_NO_SUCH_TABLE') {
-      res.status(404).send(`Table ${fullTableName} doesn't exist, create table first by calling POST /table-create with app_name and query parameters`);
-    } else if (error.code === 'ECONNREFUSED') {
-      const publicIP = await getPublicIP()
-      res.status(404).send(`Can't connect to database. Add IP of this backend: ${publicIP} to permitted.`);
-    } else {
-      res.status(500).send(error.message);
+    const payload = {
+      projectId: process.env.REPO,
+      namespace: process.env.NAMESPACE,
+      stage: 'RUNTIME',
+      eventData: {
+        triggerIP: triggerIP, 
+        slaveRepo: process.env.SLAVE_REPO
+      }
     }
+    await axios.post(process.env.STAT_URL, payload);
+  } catch (error) {
+    console.error('error in sendRuntimeEventToStat...');
+    console.error(error);
+    return null;
   }
-});
+}
 
 app.get('/get-updates', async (req, res) => {
-  const publicIP = await getPublicIP()
+  console.log(req)
+  const clientIP = req.ip
+  await sendRuntimeEventToStat(clientIP)
+  // const publicIP = await getPublicIP()
   res.json({ 
-    STAT__STATUS: 'working1', 
-    database: process.env.DB_DATABASE,
-    id: publicIP,
+    trigger: clientIP,
     PORT: process.env.PORT
    })
 })

@@ -15,10 +15,41 @@ const axios = require('axios');
 app.post('/get-events', async (req, res) => {
   const { id, projectId, namespace, stage, isError, date } = req.body;
   let query = 'SELECT * FROM events';
+  const conditions = [];
+  const values = [];
+
+  if (id) {
+    conditions.push('id = ?');
+    values.push(id);
+  }
+  if (projectId) {
+    conditions.push('projectId = ?');
+    values.push(projectId);
+  }
+  if (namespace) {
+    conditions.push('namespace = ?');
+    values.push(namespace);
+  }
+  if (stage) {
+    conditions.push('stage = ?');
+    values.push(stage);
+  }
+  if (isError !== undefined) {
+    conditions.push('isError = ?');
+    values.push(isError);
+  }
+  if (date) {
+    conditions.push('date = ?');
+    values.push(date);
+  }
+
+  if (conditions.length > 0) {
+    query += ' WHERE ' + conditions.join(' AND ');
+  }
   try {
     const pool = createPool()
     const connection = await pool.getConnection();
-    const [rows] = await connection.query(query);
+    const [rows] = await connection.query(query, values);
     connection.release();
     res.json(rows)
   } catch (error) {

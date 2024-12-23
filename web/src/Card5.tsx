@@ -32,6 +32,7 @@ const LineChartComponent = () => {
   const convertResponse = (data: ResponseDataItem[]): ChartDataItem[] => {
     const result: ChartDataItem[] = []
     data
+    .filter(el => el.projectId === 'stat@github')
     .sort((a,b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()) 
     .forEach((el: ResponseDataItem) => {
       const chartItem: ChartDataItem = {

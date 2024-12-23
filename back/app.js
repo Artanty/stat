@@ -91,7 +91,6 @@ app.post('/add-event', async (req, res) => {
     // Return the newly inserted event ID
     res.status(201).json({ id: result.insertId });
   } catch (error) {
-    // Handle specific errors
     console.log(error);
     if (error.code === 'ER_NO_SUCH_TABLE') {
       res.status(404).send(`Table events doesn't exist`);

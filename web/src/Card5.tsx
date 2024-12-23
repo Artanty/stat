@@ -4,9 +4,9 @@ import { fetchData }  from './api.service';
 import { formatDate, swapObject } from './helpers';
 export const stat_stages = { //stat_stages
   RUNTIME: 2000,
-  PUSH_TO_SLAVE: 1500,
+  PUSH_SLAVE: 1500,
   GET_SAFE: 1000,
-  PUSH_TO_MASTER: 500,
+  PUSH_MASTER: 500,
   UNKNOWN: 0,
 }
  export interface ChartDataItem {
@@ -36,7 +36,7 @@ const LineChartComponent = () => {
     .sort((a,b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()) 
     .forEach((el: ResponseDataItem) => {
       const chartItem: ChartDataItem = {
-        Date: formatDate(el.eventDate, {hours: true, minutes: true}),
+        Date: el.eventDate,
         scales: stat_stages[el.stage] ?? stat_stages.UNKNOWN,
         _date: formatDate(el.eventDate, {hours: true})
       }
@@ -88,16 +88,26 @@ return  result
   const config: LineChartProps = {
     // height: 350,
     data,
-    padding: [20, 20, 30, 110],
+    // padding: [20, 20, 30, 110],
+    padding: [30, 20, 30, 20],
     xField: 'Date',
+    xAxis: {
+      label: {
+        formatter: (fullDate) => {
+          return formatDate(fullDate, {hours: true, minutes: true})
+        },
+      },
+    },
     yField: 'scales',
     yAxis: {
-      // tickCount: 4,
       label: {
         formatter: (v) => {
           return swapObject(stat_stages)[v]; 
         },
+        rotate: -0.2,
+        offset: -2,
       },
+      
     },
     // stepType: 'hvh',
     annotations: [

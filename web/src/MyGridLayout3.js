@@ -18,11 +18,11 @@ const ResponsiveReactGridLayout = WidthProvider(Responsive);
 export default class BootstrapStyleLayout extends React.PureComponent {
   static defaultProps = {
     isDraggable: false,
-    isResizable: true,
-    items: 3, // Ensure this matches the number of components
+    isResizable: false,
+    items: 1, // Ensure this matches the number of components
     rowHeight: 35,
     onLayoutChange: function() {},
-    cols: {lg: 12, md: 12, sm: 12, xs: 12, xxs: 12}
+    cols: {lg: 1, md: 12, sm: 12, xs: 12, xxs: 12}
   };
 
   state = {

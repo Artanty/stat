@@ -1,7 +1,7 @@
 import 'dotenv/config'
 const API_URL = process.env.BACKEND_URL
 
-export interface GetEvents { 
+export interface GetEventsRequest { 
   id?: number, 
   projectId?: string, 
   namespace?: string, 
@@ -10,7 +10,7 @@ export interface GetEvents {
   date?: string
 }
 
-export const fetchData = async (payload?: GetEvents) => {
+export const fetchData = async (payload?: GetEventsRequest) => {
   
   try {
     const response = await fetch(`${API_URL}/get-events`, {
@@ -30,14 +30,3 @@ export const fetchData = async (payload?: GetEvents) => {
     throw new Error(`Error fetching data: ${error.message}`);
   }
 };
-// data: [
-//   { year: '1991', value: 3 },
-//   { year: '1992', value: 4 },
-//   { year: '1993', value: 3.5 },
-//   { year: '1994', value: 5 },
-//   { year: '1995', value: 4.9 },
-//   { year: '1996', value: 6 },
-//   { year: '1997', value: 7 },
-//   { year: '1998', value: 9 },
-//   { year: '1999', value: 11 },
-// ],

@@ -56,3 +56,18 @@ export const swapObject = (obj) => {
   }
   return swappedObj;
 };
+
+
+// Group events by projectId and namespace
+export const groupEventsByIdAndNamespace = (events) => {
+  const groupedEvents = events.reduce((acc, event) => {
+    const key = `${event.projectId}-${event.namespace}`; // Create a unique key
+    if (!acc[key]) {
+      acc[key] = []; // Initialize an array for this key if it doesn't exist
+    }
+    acc[key].push(event); // Push the event into the corresponding array
+    return acc;
+  }, {});
+  
+  return groupedEvents;
+}

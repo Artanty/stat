@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react'
 import { LineChart, LineChartProps } from '@opd/g2plot-react'
-import { fetchData }  from './api.service';
 import { formatDate, swapObject } from './helpers';
 export const stat_stages = { //stat_stages
   RUNTIME: 2000,
@@ -23,7 +22,13 @@ export interface ResponseDataItem {
   "eventData": string
   "eventDate": string
 }
-const LineChartComponent = () => {
+
+interface LineChartComponentProps {
+  events: ResponseDataItem[]; // Passed events prop
+  name: string; // Passed name prop
+}
+
+const LineChartComponent: React.FC<LineChartComponentProps> = ({ events, name }) => {
   const [data, setData] = useState<ChartDataItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -32,7 +37,7 @@ const LineChartComponent = () => {
   const convertResponse = (data: ResponseDataItem[]): ChartDataItem[] => {
     const result: ChartDataItem[] = []
     data
-    .filter(el => el.projectId === 'stat@github')
+    // .filter(el => el.projectId === 'stat@github')
     .sort((a,b) => new Date(a.eventDate).getTime() - new Date(b.eventDate).getTime()) 
     .forEach((el: ResponseDataItem) => {
       const chartItem: ChartDataItem = {
@@ -42,7 +47,8 @@ const LineChartComponent = () => {
       }
       result.push(chartItem)
     })
-return  result
+    
+    return result
   }
 //   {
 //     "id": 1,
@@ -56,17 +62,28 @@ return  result
 // {Date: '2010-01', scales: 1998}
 // {Date: '2010-02', scales: 1850}
   useEffect(() => {
+    // const getData = async () => {
+    //   try {
+    //     // await fetch('https://gw.alipayobjects.com/os/bmw-prod/1d565782-dde4-4bb6-8946-ea6a38ccf184.json')
+    //     await fetchData()
+    //     // .then((res) => res.json())
+    //     .then((data) => {
+    //       // console.log(data.map(el => ({date: el.eventDate, val: stat_stages[el.stage as any]})).sort((a,b) => a.date - b.date))
+    //       // console.log(convertResponse(data).sort((a,b) => +a._date - +b._date))
+    //       console.log(convertResponse(data))
+    //       setData(convertResponse(data))
+    //     });
+    //   } catch (err: any) {
+    //     setError(err.message);
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // };
     const getData = async () => {
       try {
-        // await fetch('https://gw.alipayobjects.com/os/bmw-prod/1d565782-dde4-4bb6-8946-ea6a38ccf184.json')
-        await fetchData()
-        // .then((res) => res.json())
-        .then((data) => {
-          // console.log(data.map(el => ({date: el.eventDate, val: stat_stages[el.stage as any]})).sort((a,b) => a.date - b.date))
-          // console.log(convertResponse(data).sort((a,b) => +a._date - +b._date))
-          console.log(convertResponse(data))
-          setData(convertResponse(data))
-        });
+        // Use the passed `events` prop instead of fetching data
+        const processedData = convertResponse(events);
+        setData(processedData);
       } catch (err: any) {
         setError(err.message);
       } finally {
@@ -75,7 +92,7 @@ return  result
     };
 
     getData();
-  }, []);
+  }, [events]); // Re-run effect when `events` prop changes
 
   if (loading) {
     return <div>Loading...</div>;
@@ -150,7 +167,12 @@ return  result
     ],
   };
 
-  return <LineChart {...config} chartRef={chartRef as any} />;
+  return (
+    <div>
+      <h2>{name}</h2> {/* Display the name prop */}
+      <LineChart {...config} chartRef={chartRef as any} />
+    </div>
+  );
 };
 
 export default LineChartComponent;

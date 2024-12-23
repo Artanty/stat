@@ -1,12 +1,10 @@
 import React from "react";
 import { WidthProvider, Responsive } from "react-grid-layout";
+import { groupEventsByIdAndNamespace } from "./helpers";
+import { fetchData }  from './api.service';
 
 // Dynamically import components
 const components = {
-  // Card: React.lazy(() => import('./Card')),
-  // Card2: React.lazy(() => import('./Card2')),
-  // Card3: React.lazy(() => import('./Card3')),
-  // Card4: React.lazy(() => import('./Card4')),
   Card5: React.lazy(() => import('./Card5')),
 };
 
@@ -19,29 +17,49 @@ export default class BootstrapStyleLayout extends React.PureComponent {
   static defaultProps = {
     isDraggable: false,
     isResizable: false,
-    items: 1, // Ensure this matches the number of components
-    rowHeight: 35,
+    items: 2, // Ensure this matches the number of components
+    rowHeight: 40,
     onLayoutChange: function() {},
-    cols: {lg: 1, md: 12, sm: 12, xs: 12, xxs: 12}
+    cols: {lg: 12, md: 12, sm: 12, xs: 12, xxs: 12}
   };
 
   state = {
-    layouts: this.generateLayouts()
+    layouts: this.generateLayouts(),
+    groupedEvents: {}, // Initialize groupedEvents as an empty object
+    loading: true, // Add a loading state to handle the fetch
   };
+
+  async componentDidMount() {
+    try {
+      // Fetch data from the backend
+      const events = await fetchData();
+
+      // Group events by projectId and namespace
+      const groupedEvents = groupEventsByIdAndNamespace(events);
+
+      this.setState({ groupedEvents, loading: false }); // Update state with grouped events
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      this.setState({ loading: false }); // Handle errors and stop loading
+    }
+  }
 
   onLayoutChange(layout) {
     this.props.onLayoutChange(layout);
   }
 
   generateDOM() {
-    const componentKeys = Object.keys(components);
+    const { groupedEvents } = this.state;
 
-    return componentKeys.map((key, i) => {
-      const Component = components[key];
+    // Generate one Card5 component for each group
+    return Object.entries(groupedEvents).map(([key, events], index) => {
+      const Component = components.Card5;
       return (
-        <div key={i}>
+        <div key={index}>
           <React.Suspense fallback={<div>Loading...</div>}>
-            <span className="text"><Component /></span>
+            <span className="text">
+              <Component events={events} name={key} />
+            </span>
           </React.Suspense>
         </div>
       );
@@ -72,6 +90,10 @@ export default class BootstrapStyleLayout extends React.PureComponent {
   }
 
   render() {
+    if (this.state.loading) {
+      return <div>Loading...</div>; // Show a loading spinner or message
+    }
+
     return (
       <ResponsiveReactGridLayout
         onLayoutChange={this.onLayoutChange}

@@ -124,7 +124,6 @@ app.get('/get-updates', async (req, res) => {
   console.log(req)
   const clientIP = req.ip
   await sendRuntimeEventToStat(clientIP)
-  // const publicIP = await getPublicIP()
   res.json({ 
     trigger: clientIP,
     PORT: process.env.PORT

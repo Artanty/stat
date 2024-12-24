@@ -10,7 +10,6 @@ app.use(cors());
 app.use(bodyParser.json());
 const axios = require('axios');
 
-
 app.post('/get-events', async (req, res) => {
   const { id, projectId, namespace, stage, isError, date } = req.body;
   let query = 'SELECT * FROM events';

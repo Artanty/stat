@@ -1,4 +1,4 @@
-import React from "react";
+import React, {Component} from "react";
 import { WidthProvider, Responsive } from "react-grid-layout";
 import { groupEventsByIdAndNamespace } from "./helpers";
 import { fetchData }  from './api.service';
@@ -13,7 +13,7 @@ const ResponsiveReactGridLayout = WidthProvider(Responsive);
 /**
  * This example illustrates how to let grid items lay themselves out with a bootstrap-style specification.
  */
-export default class BootstrapStyleLayout extends React.PureComponent {
+export default class BootstrapStyleLayout extends Component {
   static defaultProps = {
     isDraggable: false,
     isResizable: false,

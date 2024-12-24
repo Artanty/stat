@@ -11,7 +11,6 @@ export interface GetEventsRequest {
 }
 
 export const fetchData = async (payload?: GetEventsRequest) => {
-  
   try {
     const response = await fetch(`${API_URL}/get-events`, {
       method: 'POST',

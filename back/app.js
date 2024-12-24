@@ -8,9 +8,8 @@ const checkDBConnection = require('./core/db_check_connection')
 
 app.use(cors());
 app.use(bodyParser.json());
-const fs = require('fs').promises; // Use promises for fs to handle asynchronous operations
-const os = require('os');
 const axios = require('axios');
+
 
 app.post('/get-events', async (req, res) => {
   const { id, projectId, namespace, stage, isError, date } = req.body;

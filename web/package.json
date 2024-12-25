@@ -3,9 +3,10 @@
   "version": "1.0.0",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "node build/delete-folder.js && parcel src/index.html --open --port 1230",
+    "dev": "node build/delete-parcel-cache.js && parcel src/index.html --open --port 1230",
     "start": "parcel src/index.html",
-    "build": "parcel build src/index.html"
+    "build": "node build/delete-dist.js && parcel build src/index.html",
+    "watch": "cd build && http-server -a 192.168.3.2 -o"
   },
   "keywords": [],
   "author": "",
@@ -15,6 +16,7 @@
     "@babel/core": "^7.26.0",
     "@opd/g2plot-react": "^2.13.4",
     "dotenv": "^16.4.5",
+    "http-server": "^14.1.1",
     "lodash": "^4.17.21",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

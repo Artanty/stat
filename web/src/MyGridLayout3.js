@@ -5,25 +5,42 @@ import { fetchData } from "./api.service";
 
 // Dynamically import components
 const components = {
-  Card5: React.lazy(() => import("./Card5")),
+  // Card5: React.lazy(() => import("./Card5")),
+  Card1: React.lazy(() => import("./Card1")),
 };
 
 const ResponsiveReactGridLayout = WidthProvider(Responsive);
 
 const BootstrapStyleLayout = (props) => {
   const defaultProps = {
+    className: "layout",
     isDraggable: false,
     isResizable: false,
-    items: 2, // Ensure this matches the number of components
-    rowHeight: 40,
+    items: 10, // Ensure this matches the number of components
+    rowHeight: 120,
     onLayoutChange: () => {},
     cols: { lg: 12, md: 12, sm: 12, xs: 12, xxs: 12 },
+    // cols: 12,
   };
 
   // Generate responsive layouts
   const generateLayouts = () => {
+
     const items = [...Array(props.items || defaultProps.items)];
-    const widths = { lg: 3, md: 4, sm: 6, xs: 12, xxs: 12 };
+    const widths = { 
+      lg: 3, // 12 \ 3 = 4 виджета
+      md: 4, // 12 \ 4 = 3 виджета
+      sm: 6, 
+      xs: 12, 
+      xxs: 12 
+    };
+    // const widths = { 
+    //   lg: 12,// 12 \ 12 = 1 виджет
+    //   md: 12,
+    //   sm: 12, 
+    //   xs: 12, 
+    //   xxs: 12 
+    // };
     return Object.keys(widths).reduce((acc, curr) => {
       const width = widths[curr];
       const cols = (props.cols || defaultProps.cols)[curr];
@@ -32,9 +49,9 @@ const BootstrapStyleLayout = (props) => {
           x: (i * width) % cols,
           y: 0,
           w: width,
-          h: 9,
+          h: 4,
           i: String(i),
-          minH: 8,
+          minH: 4,
         })),
       ];
       return acc;
@@ -66,12 +83,15 @@ const BootstrapStyleLayout = (props) => {
 
   // Generate DOM elements for each group of events
   const generateDOM = () => {
+
     return Object.entries(groupedEvents).map(([key, events], index) => {
-      const Component = components.Card5;
+      // const Component = components.Card5;
+      const Component = components.Card1;
       return (
         <div key={index}>
           <React.Suspense fallback={<div>Loading...</div>}>
             <span className="text">
+              {/* <Component events={events} name={key} /> */}
               <Component events={events} name={key} />
             </span>
           </React.Suspense>
@@ -90,11 +110,11 @@ const BootstrapStyleLayout = (props) => {
   if (loading) {
     return <div>Loading...</div>; // Show a loading spinner or message
   }
-
+  console.log(defaultProps)
   return (
     <ResponsiveReactGridLayout
       onLayoutChange={onLayoutChange}
-      {...props}
+      {...defaultProps}
       layouts={layouts}
     >
       {generateDOM()}

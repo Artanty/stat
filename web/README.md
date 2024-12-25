@@ -1,7 +1,48 @@
 "npm run start": "parcel src/index.html --open"
 This tells parcel to bundle all the scripts together, then run it on a built-in server and open the default browser to the page.
 
+2 v odnom
+https://ant-design-charts.antgroup.com/en/examples/statistics/dual-axes#dual-step-line
+
 used:
+https://ant-design-charts.antgroup.com/en/manual/getting-started
+
+```
+type TooltipItem =
+  | string
+  | false
+  | {
+      name?: string;
+      color?: string;
+      channel?: string;
+      field?: string;
+      value?: string;
+      // 格式化 tooltip item 的值（支持 d3-format 对应的字符串）
+      valueFormatter?: string | ((d: any) => string);
+    };
+```
+
+```
+{
+        "id": 27,
+        "projectId": "stat@github",
+        "namespace": "back",
+        "stage": "GET_SAFE",
+        "isError": 0,
+        "eventData": "trig;",
+        "eventDate": "2024-12-23T20:53:54.384Z"
+    },
+```
+    to
+```
+{
+  "date": "2011-12-01T00:00:00.000Z",
+     "value": 60.4
+ },
+```
+
+
+tried:
 https://github.com/react-grid-layout
 https://g2plot.opd.cool/guide
 https://g2plot.antv.antgroup.com/en/examples

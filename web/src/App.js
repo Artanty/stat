@@ -5,7 +5,9 @@ export function App() {
 
     return (
     <div>
-        <MyGridLayout3 />
+        <MyGridLayout3
+            isDraggable={false}
+            isResizable={false} />
     </div> 
     );
 }

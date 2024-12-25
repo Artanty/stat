@@ -5,16 +5,17 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node build/delete-parcel-cache.js && parcel src/index.html --open --port 1230",
     "start": "parcel src/index.html",
-    "build": "node build/delete-dist.js && parcel build src/index.html",
-    "watch": "cd build && http-server -a 192.168.3.2 -o"
+    "build": "node build/delete-dist.js && parcel build src/index.html && cd dist && http-server -o",
+    "watch": "node build/delete-dist.js && parcel build src/index.html && cd dist && http-server",
+    "cl": "node build/delete-parcel-cache.js && node build/delete-dist.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "description": "",
   "dependencies": {
+    "@ant-design/charts": "^2.2.6",
     "@babel/core": "^7.26.0",
-    "@opd/g2plot-react": "^2.13.4",
     "dotenv": "^16.4.5",
     "http-server": "^14.1.1",
     "lodash": "^4.17.21",

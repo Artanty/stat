@@ -71,3 +71,81 @@ export const groupEventsByIdAndNamespace = (events) => {
   
   return groupedEvents;
 }
+
+
+export function formatDateByTimezone<T extends Record<string, any>>(
+  arr: T[],
+  prop: keyof T,
+  timezone: string
+): T[] {
+  // Validate the timezone
+  try {
+      new Intl.DateTimeFormat('en-US', { timeZone: timezone }).format(new Date());
+  } catch (error) {
+      throw new Error(`Invalid time zone specified: ${timezone}`);
+  }
+
+  return arr.map(obj => {
+      // Create a deep copy of the object to avoid mutating the original
+      const newObj: T = { ...obj };
+
+      // Get the date string from the specified property
+      const dateString = newObj[prop];
+
+      // Ensure the property value is a string (or Date) that can be parsed
+      if (typeof dateString !== 'string' && !(dateString instanceof Date)) {
+          throw new Error(`Property ${String(prop)} must be a string or Date`);
+      }
+
+      // Create a Date object from the date string
+      const date = new Date(dateString);
+
+      // Get the timezone-adjusted date parts
+      const adjustedDate = new Intl.DateTimeFormat('en-US', {
+          timeZone: timezone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+          fractionalSecondDigits: 3, // Include milliseconds
+          hour12: false
+      }).formatToParts(date);
+
+      // Extract the parts and construct the ISO string
+      const year = adjustedDate.find(part => part.type === 'year')!.value;
+      const month = adjustedDate.find(part => part.type === 'month')!.value;
+      const day = adjustedDate.find(part => part.type === 'day')!.value;
+      const hour = adjustedDate.find(part => part.type === 'hour')!.value;
+      const minute = adjustedDate.find(part => part.type === 'minute')!.value;
+      const second = adjustedDate.find(part => part.type === 'second')!.value;
+      const fractionalSecond = adjustedDate.find(part => part.type === 'fractionalSecond')!.value;
+
+      // Construct the ISO string in the same format
+      const isoString = `${year}-${month}-${day}T${hour}:${minute}:${second}.${fractionalSecond}Z`;
+
+      // Update the property with the adjusted ISO string
+      newObj[prop] = isoString as T[keyof T];
+
+      return newObj;
+  });
+}
+
+// // Example usage:
+// interface ExampleObject {
+//   id: number;
+//   timestamp: string;
+// }
+
+// const data: ExampleObject[] = [
+//   { id: 1, timestamp: '2024-12-22T23:17:03.007Z' },
+//   { id: 2, timestamp: '2024-12-23T10:45:00.123Z' }
+// ];
+
+// try {
+//   const formattedData = formatDateByTimezone(data, 'timestamp', 'America/New_York'); // Valid timezone
+//   console.log(formattedData);
+// } catch (error) {
+//   console.error(error.message);
+// }

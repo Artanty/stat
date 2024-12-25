@@ -1,24 +1,7 @@
 import React from 'react';
 import { Line } from '@ant-design/charts';
 import { formatDate, swapObject } from './helpers';
-
-export const stat_stages = { //stat_stages
-    RUNTIME: 2000,
-    PUSH_SLAVE: 1500,
-    GET_SAFE: 1000,
-    PUSH_MASTER: 500,
-    UNKNOWN: 0,
-  }
-
-export interface ResponseDataItem {
-  "id": number
-  "projectId": string
-  "namespace": string
-  "stage": keyof typeof stat_stages
-  "isError": number
-  "eventData": string
-  "eventDate": string
-}
+import { ResponseDataItem, stat_stages } from './models';
 
 // export interface ChartDataItem {
 //     date: string,
@@ -51,7 +34,8 @@ const DemoLine = ({ events, name }) => {
           
           return (
             <div key={title}>
-              <h4>{formatDate(title)}</h4>
+              <h4>{formatDate(title.slice(0,18))}</h4>
+              {/* <h4>{title}</h4> */}
               {items
               .filter((el: RenderedPoint) => el.name === 'renderValue')
               .map((item: RenderedPoint) => {            

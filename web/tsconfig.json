@@ -1,7 +1,5 @@
 {
   "compilerOptions": {
-    
-    
     /* Specify ECMAScript target version */
     "target": "es5",
     /* Specify module code generation */
@@ -12,9 +10,7 @@
       "DOM"
     ],
     /* Specify JSX code generation */
-    "jsx": "react-jsx",
-    
-    
+    "jsx": "react",
     /* Generate corresponding .map files */
     "sourceMap": true,
     /* Enable all strict type-checking options */

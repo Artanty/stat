@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "parcel src/index.html --open --port 1230",
+    "dev": "node build/delete-folder.js && parcel src/index.html --open --port 1230",
     "start": "parcel src/index.html",
     "build": "parcel build src/index.html"
   },

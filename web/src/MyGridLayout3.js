@@ -20,6 +20,27 @@ const BootstrapStyleLayout = (props) => {
     cols: { lg: 12, md: 12, sm: 12, xs: 12, xxs: 12 },
   };
 
+  // Generate responsive layouts
+  const generateLayouts = () => {
+    const items = [...Array(props.items || defaultProps.items)];
+    const widths = { lg: 3, md: 4, sm: 6, xs: 12, xxs: 12 };
+    return Object.keys(widths).reduce((acc, curr) => {
+      const width = widths[curr];
+      const cols = (props.cols || defaultProps.cols)[curr];
+      acc[curr] = [
+        ...items.map((_, i) => ({
+          x: (i * width) % cols,
+          y: 0,
+          w: width,
+          h: 9,
+          i: String(i),
+          minH: 8,
+        })),
+      ];
+      return acc;
+    }, {});
+  };
+  
   const [layouts, setLayouts] = useState(generateLayouts());
   const [groupedEvents, setGroupedEvents] = useState({});
   const [loading, setLoading] = useState(true);
@@ -41,26 +62,7 @@ const BootstrapStyleLayout = (props) => {
     fetchAndGroupEvents();
   }, []);
 
-  // Generate responsive layouts
-  const generateLayouts = () => {
-    const items = [...Array(props.items || defaultProps.items)];
-    const widths = { lg: 3, md: 4, sm: 6, xs: 12, xxs: 12 };
-    return Object.keys(widths).reduce((acc, curr) => {
-      const width = widths[curr];
-      const cols = (props.cols || defaultProps.cols)[curr];
-      acc[curr] = [
-        ...items.map((_, i) => ({
-          x: (i * width) % cols,
-          y: 0,
-          w: width,
-          h: 9,
-          i: String(i),
-          minH: 8,
-        })),
-      ];
-      return acc;
-    }, {});
-  };
+  
 
   // Generate DOM elements for each group of events
   const generateDOM = () => {

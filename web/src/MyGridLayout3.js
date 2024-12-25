@@ -5,7 +5,8 @@ import { fetchData }  from './api.service';
 
 // Dynamically import components
 const components = {
-  Card5: React.lazy(() => import('./Card5')),
+  // Card5: React.lazy(() => import('./Card5')),
+  Card: React.lazy(() => import('./Card')),
 };
 
 const ResponsiveReactGridLayout = WidthProvider(Responsive);
@@ -53,12 +54,14 @@ export default class BootstrapStyleLayout extends React.PureComponent {
 
     // Generate one Card5 component for each group
     return Object.entries(groupedEvents).map(([key, events], index) => {
-      const Component = components.Card5;
+      // const Component = components.Card5;
+      const Component = components.Card;
       return (
         <div key={index}>
           <React.Suspense fallback={<div>Loading...</div>}>
             <span className="text">
-              <Component events={events} name={key} />
+              {/* <Component events={events} name={key} /> */}
+              <Component />
             </span>
           </React.Suspense>
         </div>

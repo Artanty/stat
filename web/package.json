@@ -5,7 +5,8 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "dev": "node build/delete-parcel-cache.js && parcel src/index.html --open --port 1230",
     "start": "parcel src/index.html",
-    "build": "node build/delete-dist.js && parcel build src/index.html && cd dist && http-server -o",
+    "build": "parcel build src/index.html",
+    "wa": "node build/delete-dist.js && parcel build src/index.html && cd dist && http-server -o",
     "watch": "node build/delete-dist.js && parcel build src/index.html && cd dist && http-server",
     "cl": "node build/delete-parcel-cache.js && node build/delete-dist.js"
   },

@@ -110,7 +110,7 @@ const BootstrapStyleLayout = (props) => {
   if (loading) {
     return <div>Loading...</div>; // Show a loading spinner or message
   }
-  console.log(defaultProps)
+  
   return (
     <ResponsiveReactGridLayout
       onLayoutChange={onLayoutChange}

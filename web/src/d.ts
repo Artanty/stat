@@ -1,1 +1,1 @@
-export const fetchData: () => Promise<Array<{ year: string; value: number }>>;
+declare const fetchData: () => Promise<Array<{ year: string; value: number }>>;

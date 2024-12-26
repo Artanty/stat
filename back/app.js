@@ -111,16 +111,16 @@ async function sendRuntimeEventToStat(triggerIP) {
         slaveRepo: process.env.SLAVE_REPO
       }
     }
-    await axios.post(process.env.STAT_URL, payload);
+    await axios.post(`${process.env.STAT_URL}/add-event`, payload);
   } catch (error) {
     console.error('error in sendRuntimeEventToStat...');
-    console.error(error);
+    // console.error(error);
     return null;
   }
 }
 
 app.get('/get-updates', async (req, res) => {
-  console.log(req)
+
   const clientIP = req.ip
   await sendRuntimeEventToStat(clientIP)
   res.json({ 

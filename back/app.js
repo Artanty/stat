@@ -137,19 +137,9 @@ async function sendRuntimeEventToStat(triggerIP) {
   }
 }
 
-// app.get('/get-updates', async (req, res) => {
-
-//   const clientIP = req.ip
-//   const sendToStatResult = await sendRuntimeEventToStat(clientIP)
-//   res.json({ 
-//     trigger: clientIP,
-//     PORT: process.env.PORT,
-//     isSendToStat: sendToStatResult
-//    })
-// })
 // Function to check if the current minute is one of [0, 15, 30, 45]
 function shouldRunStat(currentMinute) { // : boolean
-  return [0, 15, 30, 45].includes(currentMinute);
+  return [1, 15, 30, 45].includes(currentMinute);
 }
 
 // Global variable to track the last minute when sendRuntimeEventToStat was called
@@ -174,8 +164,8 @@ app.get('/get-updates', async (req, res) => {
   } else {
       // If stat is not true, check the current time and whether the function was already called this minute
       if (shouldRunStat(currentMinute) && lastExecutedMinute !== currentMinute) {
-          sendToStatResult = await sendRuntimeEventToStat(clientIP);
           lastExecutedMinute = currentMinute; // Update the last executed minute
+          sendToStatResult = await sendRuntimeEventToStat(clientIP);
       }
   }
 

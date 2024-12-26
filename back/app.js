@@ -5,7 +5,6 @@ const cors = require('cors');
 const bodyParser = require('body-parser');
 const createPool = require('./core/db_connection')
 const checkDBConnection = require('./core/db_check_connection')
-
 app.use(cors());
 app.use(bodyParser.json());
 const axios = require('axios');

@@ -103,29 +103,48 @@ app.post('/add-event', async (req, res) => {
 async function sendRuntimeEventToStat(triggerIP) {
   try {
     const payload = {
-      projectId: process.env.REPO,
+      projectId: `${process.env.PROJECT_ID}@github`,
       namespace: process.env.NAMESPACE,
       stage: 'RUNTIME',
-      eventData: {
-        triggerIP: triggerIP, 
-        slaveRepo: process.env.SLAVE_REPO
-      }
+      eventData: JSON.stringify(
+        {
+          triggerIP: triggerIP,
+          projectId: process.env.PROJECT_ID,
+          slaveRepo: process.env.SLAVE_REPO,
+          commit: process.env.COMMIT
+        }
+      )
     }
     await axios.post(`${process.env.STAT_URL}/add-event`, payload);
+    console.log(`SENT TO @stat: ${process.env.PROJECT_ID}@github -> ${process.env.SLAVE_REPO} | ${process.env.COMMIT}`)
+    return true
   } catch (error) {
     console.error('error in sendRuntimeEventToStat...');
-    // console.error(error);
-    return null;
+    if (axios.isAxiosError(error)) {
+      // Handle Axios-specific errors
+      const axiosError = error; // as AxiosError
+      console.error('Axios Error:', {
+          message: axiosError.message,
+          status: axiosError.response?.status,
+          statusText: axiosError.response?.statusText,
+          data: axiosError.response?.data,
+      });
+    } else {
+        // Handle generic errors
+        console.error('Unexpected Error:', error);
+    }
+    return false;
   }
 }
 
 app.get('/get-updates', async (req, res) => {
 
   const clientIP = req.ip
-  await sendRuntimeEventToStat(clientIP)
+  const sendToStatResult = await sendRuntimeEventToStat(clientIP)
   res.json({ 
     trigger: clientIP,
-    PORT: process.env.PORT
+    PORT: process.env.PORT,
+    isSendToStat: sendToStatResult
    })
 })
 

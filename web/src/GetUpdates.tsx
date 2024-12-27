@@ -1,22 +1,44 @@
 import React, { useEffect, useState } from 'react';
 
+export interface GetUpdatesDataToReturn {
+  PORT: number
+  isSentToStat: boolean,
+}
 const GetUpdates = () => {
-  const [data, setData] = useState(null);
+  const [data, setData] = useState<GetUpdatesDataToReturn | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Fetch data on component initialization
     const fetchData = async () => {
       try {
-        const response = await fetch('https://jsonplaceholder.typicode.com/posts/1');
+        const payload = {
+          projectId: `${process.env.PROJECT_ID}@github`,
+          namespace: process.env.NAMESPACE,
+          stage: 'RUNTIME',
+          eventData: JSON.stringify(
+            {
+              slaveRepo: process.env.SLAVE_REPO,
+              commit: process.env.COMMIT
+            }
+          )
+        }
+        
+        const response = await fetch(`${process.env.STAT_URL}/add-event`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload)
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch data');
         }
-        const result = await response.json();
-        const result2 ={
-          PORT: process.env.PORT,
-          isSendToStat: Boolean(result),
+        console.log(`SENT TO @stat: ${process.env.PROJECT_ID}@github -> ${process.env.SLAVE_REPO} | ${process.env.COMMIT}`)
+        const requestResult = await response.json();
+        const result ={
+          PORT: Number(process.env.PORT),
+          isSentToStat: Boolean(requestResult),
         }
         setData(result);
       } catch (err) {
@@ -37,14 +59,8 @@ const GetUpdates = () => {
     return <div>Error: {error}</div>;
   }
 
-  // return (
-  //   <div>
-  //     <pre>{JSON.stringify(data, null, 2)}</pre>
-  //   </div>
-  // );
   return (
     <div>
-      <strong>API Key:</strong> {process.env.REACT_APP_API_KEY}
       <pre>{JSON.stringify(data, null, 2)}</pre>
     </div>
   );

@@ -14,7 +14,7 @@ export interface GetEventsRequest {
 
 export const fetchData = async (payload?: GetEventsRequest) => {
   try {
-    const response = await fetch(`${API_URL}/get-events`, {
+    const response = await fetch(`${API_URL}/get-last-events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -25,10 +25,9 @@ export const fetchData = async (payload?: GetEventsRequest) => {
       throw new Error('Network response was not ok'); 
     }
     const data = await response.json();
-    console.log(data[0])
+    
     const updData = formatDateByTimezone<ResponseDataItem>(data, 'eventDate', 'Europe/Moscow');
-    // const updData = data
-    console.log(updData[0])
+    
     return updData
   } catch (error: any) {
     throw new Error(`Error fetching data: ${error.message}`);

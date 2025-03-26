@@ -66,7 +66,7 @@ const BootstrapStyleLayout = (props) => {
   useEffect(() => {
     const fetchAndGroupEvents = async () => {
       try {
-        const events = await fetchData();
+        const events = await fetchData({ "dateRange": "24 HOUR" });
         const groupedEvents = groupEventsByIdAndNamespace(events);
         setGroupedEvents(groupedEvents);
       } catch (error) {

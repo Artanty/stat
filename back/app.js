@@ -7,6 +7,9 @@ app.use(cors());
 app.use(express.json());
 const axios = require('axios');
 
+/**
+ * too much rows without filter - DO NOT USE
+ */
 app.post('/get-events', async (req, res) => {
   const { id, projectId, namespace, stage, isError, date } = req.body;
   let query = 'SELECT * FROM events';

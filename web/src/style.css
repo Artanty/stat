@@ -6,15 +6,14 @@
     font-style: normal;
   }
 
-#root, body{
+#root{
     font-family: "Nunito", sans-serif;
-    background-color: #000;
 }
-.react-grid-item{
-    border: 2px solid #cfcfcf;
-    border-radius: 4px;
-    /* background-color: red; */
-    overflow: hidden;
+
+body {
+    margin: 0;
+    background-color: #000;
+    font-family: "Nunito", sans-serif;
 }
 
 .times__wrapper{
@@ -40,4 +39,17 @@ h3{
     margin-top: 5px;
     font-size: 15px;
     color: #09377f;
+}
+
+
+.layout {
+    background: #f5f7fa;
+    border-radius: 8px;
+  }
+
+span.ant-checkbox {
+    display: none
+}
+.ant-card{
+    background: inherit;
 }

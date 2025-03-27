@@ -139,7 +139,7 @@ const DemoLine = ({ events, name }) => {
 
   return (
     <div>
-      <h2>{name}</h2> {/* Display the name prop */}
+      {/* <h2>{name}</h2> */}
       <Line {...config} />
     </div>
   );

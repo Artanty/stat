@@ -1,45 +1,24 @@
-import React, { useState, useEffect} from 'react';
-import { Button, ConfigProvider,Flex, GetProp, Radio, RadioChangeEvent, Space, theme } from 'antd';
+import { Button, Checkbox, ConfigProvider, Flex, InputNumber, InputNumberProps, Radio, RadioChangeEvent, Segmented, Slider, SliderSingleProps, Tag, theme } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { StatWidget } from '~/MyGridLayout3';
+import {
+  AppstoreOutlined,
+  BarsOutlined
+} from '@ant-design/icons';
 import { getProjectsApi, GetProjectsResponse, GetProjectsResponseItem } from "../api.service";
-import { Checkbox } from 'antd';
-import { createStyles } from 'antd-style';
-import { DataProvider, useData } from '../services/store'
+import { useData } from '../services/store';
+import { getRandomColor } from '../helpers';
+import { SizeType } from 'antd/es/config-provider/SizeContext';
 export const DEFAULT_DATE_RANGE = '1 HOUR'
 export interface IFilterRow {
-  label: string, value: string
+  label: string, 
+  value: string
+  color: string | any
 }
 const FilterPanel: React.FC = () => {
-  const { setSharedData, setSharedFilter } = useData();
-  const useStyle = createStyles(({ prefixCls, css }) => ({
-    linearGradientButton: css`
-      &.${prefixCls}-btn-primary:not([disabled]):not(.${prefixCls}-btn-dangerous) {
-        > span {
-          position: relative;
-        }
-  
-        &::before {
-          content: '';
-          background: linear-gradient(135deg, #6253e1, #04befe);
-          position: absolute;
-          inset: -1px;
-          opacity: 1;
-          transition: all 0.3s;
-          border-radius: inherit;
-        }
-  
-        &:hover::before {
-          opacity: 0;
-        }
-      }
-    `,
-    checkboxLabel: css`
-      .ant-checkbox + span {
-        z-index: 1;
-        position: relative;
-      }
-    `
-  }));
-  const { styles } = useStyle();
+  const { setSharedData, setSharedFilter, noDataWidgets, layoutType, setLayoutType,
+    eventsLimit, setEventsLimit
+  } = useData();
 
   const loadMasterProjectsCheckedState = () => {
     try {
@@ -73,26 +52,31 @@ const FilterPanel: React.FC = () => {
   const [masterProjects, setMasterProjects] = useState<IFilterRow[]>([]);
   const [masterProjectsChecked, setMasterProjectsChecked] = useState<string[]>(loadMasterProjectsCheckedState);
   const [dateRangeSelected, setDateRangeSelected] = useState<string>(loadDateRangeSelectedState)
+  
   const [loading, setLoading] = useState<boolean>(true);
+
   const isSelected = (project: string): boolean => {
     return masterProjectsChecked.indexOf(project) > -1
   }
+  const isNoDataWidget = (projectId: string): boolean => {
+    return noDataWidgets?.map((el: StatWidget) => el.id).includes(projectId)
+  }
   const buildFirstRow = () => {
     const data: IFilterRow[] = [
-      { value: '5 MINUTE', label: '5 min' },
-      { value: '30 MINUTE', label: '30 min' },
-      { value: '1 HOUR', label: 'Last 1 hour' },
-      { value: '2 HOUR', label: 'Last 2 hours' },
-      { value: '4 HOUR', label: 'Last 4 hours' },
-      { value: '8 HOUR', label: 'Last 8 hours' },
-      { value: '12 HOUR', label: 'Last 12 hours' },
-      { value: '18 HOUR', label: 'Last 12 hours' },
-      { value: '1 DAY', label: 'Last day' },
-      { value: '7 DAY', label: 'Last week' },
-      { value: '1 MONTH', label: 'Last month' },
-      { value: '3 MONTH', label: 'Last three months' },
-      { value: '6 MONTH', label: 'Last six months' },
-      { value: '12 MONTH', label: 'Last year' },
+      { value: '5 MINUTE', label: '5 min', color: 'default' },
+      { value: '30 MINUTE', label: '30 min', color: 'default' },
+      { value: '1 HOUR', label: 'Last 1 hour', color: 'default' },
+      { value: '2 HOUR', label: 'Last 2 hours', color: 'default' },
+      { value: '4 HOUR', label: 'Last 4 hours', color: 'default' },
+      { value: '8 HOUR', label: 'Last 8 hours', color: 'default' },
+      { value: '12 HOUR', label: 'Last 12 hours', color: 'default' },
+      { value: '18 HOUR', label: 'Last 12 hours', color: 'default' },
+      { value: '1 DAY', label: 'Last day', color: 'default' },
+      { value: '7 DAY', label: 'Last week', color: 'default' },
+      { value: '1 MONTH', label: 'Last month', color: 'default' },
+      { value: '3 MONTH', label: 'Last three months', color: 'default' },
+      { value: '6 MONTH', label: 'Last six months', color: 'default' },
+      { value: '12 MONTH', label: 'Last year', color: 'default' },
     ]
     return data.map((item: IFilterRow, i: number) => (
       <Radio.Button value={item.value} key={item.value + i}>{item.label}</Radio.Button>
@@ -111,35 +95,30 @@ const FilterPanel: React.FC = () => {
 
   const buildSecondRow = () => {
     return (
-      <ConfigProvider
-        button={{
-          className: styles.linearGradientButton,
-        }}
-      >
         <Checkbox.Group value={masterProjectsChecked} onChange={onMasterProjectsCheckedChange}>
           <Flex wrap gap="small">
             {masterProjects.map((item: IFilterRow, i: number) => (
-              <Button type={isSelected(item.value) ? "primary" : "default"} key={item.value + i}>
-                <Checkbox className={styles.checkboxLabel} value={item.value}>{item.label}</Checkbox>
+              <Button color={isSelected(item.value) ? item.color : "default"} variant="outlined" key={item.value + i}>
+                <Checkbox style={{color: 'inherit'}} value={item.value}>{item.label}</Checkbox>
+                {!isNoDataWidget(item.value) || <Tag color="red">!</Tag>}
               </Button>
             ))}
           </Flex>
         </Checkbox.Group>
-      </ConfigProvider>
-
-    //   <ConfigProvider
-    //   button={{
-    //     className: styles.linearGradientButton,
-    //   }}
-    // >
-    //   <Space>
-    //     <Button type="primary" size="large">
-    //       Gradient Button
-    //     </Button>
-    //     <Button size="large">Button</Button>
-    //   </Space>
-    // </ConfigProvider>
     )
+  }
+
+  const buildLimitSteps = () => {
+    const data: IFilterRow[] = [
+      { value: '10', label: '10', color: 'default' },
+      { value: '30', label: '30', color: 'default' },
+      { value: '50', label: '50', color: 'default' },
+      { value: '80', label: '80', color: 'default' },
+      { value: '100', label: '100', color: 'default' }
+    ]
+    return data.map((item: IFilterRow, i: number) => (
+      <Radio.Button value={item.value} key={item.value + i}>{item.label}</Radio.Button>
+    ))
   }
 
   useEffect(() => {
@@ -152,7 +131,8 @@ const FilterPanel: React.FC = () => {
           const namespacedProjectName = el.projectId.concat((el.namespace ? ('-' +  el.namespace) : ''))
           const item = { 
             value: namespacedProjectName, 
-            label: namespacedProjectName 
+            label: namespacedProjectName,
+            color: getRandomColor() 
           }
           if (el.projectId.endsWith('@github')) {
             masters.push(item)
@@ -191,24 +171,54 @@ const FilterPanel: React.FC = () => {
     setSharedData(selected);
   }
   
+  const marks: SliderSingleProps['marks'] = {
+    10: 10,
+    30: 30,
+    50: 50,
+    80: 80,
+    100: 100
+  };
+  
   return (
     <ConfigProvider
       theme={{
         algorithm: theme.darkAlgorithm,
         // algorithm: [theme.darkAlgorithm, theme.compactAlgorithm],
       }}
-    >  
-      <Flex vertical gap="middle">
-      {/* size="small" */}
-        <Radio.Group value={dateRangeSelected} onChange={dateRangeSelectedChange}> 
-          {buildFirstRow()}
-        </Radio.Group>
-        <Radio.Group defaultValue="a">
-          {buildSecondRow()}
-        </Radio.Group>
-      </Flex>
+    > 
+      <Flex gap="middle">
+        <Flex vertical gap="middle">
+          <Radio.Group value={dateRangeSelected} onChange={dateRangeSelectedChange}> 
+            {buildFirstRow()}
+          </Radio.Group>
+          <Radio.Group defaultValue="a">
+            {buildSecondRow()}
+          </Radio.Group>
+        </Flex>    
+        <Flex vertical gap="small" align="flex-end" style={{
+          background: '#141414',
+          width: '530px',
+          padding: '4px',
+          borderRadius: '14px'
+        }}>
+          <Segmented
+            value={layoutType}
+            size="middle"
+            shape="round"
+            options={[
+              { value: 'grid', icon: <AppstoreOutlined /> },
+              { value: 'list', icon: <BarsOutlined /> },
+            ]}
+            onChange={(value) => setLayoutType(value as LayoutType)}
+          />
+          <Radio.Group value={eventsLimit} onChange={(value) => setEventsLimit(value)}> 
+            {buildLimitSteps()}
+          </Radio.Group>
+        </Flex>
+      </Flex> 
+      
     </ConfigProvider>
   )
 }
-
+export type LayoutType = 'list' | 'grid'
 export default FilterPanel;

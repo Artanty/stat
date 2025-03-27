@@ -152,3 +152,26 @@ export function formatDateByTimezone<T extends Record<string, any>>(
 // } catch (error) {
 //   console.error(error.message);
 // }
+
+export const COLORS = [
+  'processing',
+  'success',
+  'error',
+  'warning',
+  'magenta',
+  'red',
+  'volcano',
+  'orange',
+  'gold',
+  'lime',
+  'green',
+  'cyan',
+  'blue',
+  'geekblue',
+  'purple'
+]
+
+export const getRandomColor = (): any => {
+  const randomIndex = Math.floor(Math.random() * COLORS.length);
+  return COLORS[randomIndex];
+};

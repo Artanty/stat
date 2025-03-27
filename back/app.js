@@ -99,21 +99,38 @@ function buildLast30RowsQuery(combinations, dateRange) {
   return queries.join('\nUNION ALL\n');
 }
 
+// request payload:
+// dateRange: string,
+// projectIds: string
+// example:
+// dateRange: "7 DAY",
+// projectId: "arms-dealer@github" | "bag@github-back"
 app.post('/get-last-events', async(req, res) => {
   const dateRange = req.body.dateRange ?? null
+  const projectId = req.body.projectId?.split('-')[0]
+  if (!dateRange || !projectId) {
+    return res.status(404).send('!dateRange || !projectId')
+  }
   try {
     const pool = createPool()
     const connection = await pool.getConnection();
-    // Step 1: Get unique combinations of projectId and namespace
-    const [uniqueCombinations] = await connection.query(`
-        SELECT DISTINCT projectId, namespace
+    let sqlQuery = ''
+    const namespace = req.body.projectId?.split('-')[1]
+    if (namespace) {
+      sqlQuery = `SELECT *
         FROM events
-    `);
-
-    // Step 2: Build the second query to get the last 30 rows for each combination
-    const sqlQuery = buildLast30RowsQuery(uniqueCombinations, dateRange);
-
-    // Step 3: Execute the built query
+        WHERE projectId = '${projectId}' AND namespace = '${namespace}'
+          AND eventDate >= NOW() - INTERVAL ${dateRange}
+        ORDER BY eventDate DESC
+        LIMIT 30`;
+    } else {
+      sqlQuery = `SELECT *
+        FROM events
+        WHERE projectId = '${projectId}' 
+          AND eventDate >= NOW() - INTERVAL ${dateRange}
+        ORDER BY eventDate DESC
+        LIMIT 30`;
+    }
     const [rows] = await connection.query(sqlQuery);
 
     connection.release();
@@ -131,6 +148,39 @@ app.post('/get-last-events', async(req, res) => {
     }
   }
 })
+
+// app.post('/get-last-events-all', async(req, res) => {
+//   const dateRange = req.body.dateRange ?? null
+//   try {
+//     const pool = createPool()
+//     const connection = await pool.getConnection();
+//     // Step 1: Get unique combinations of projectId and namespace
+//     const [uniqueCombinations] = await connection.query(`
+//         SELECT DISTINCT projectId, namespace
+//         FROM events
+//     `);
+
+//     // Step 2: Build the second query to get the last 30 rows for each combination
+//     const sqlQuery = buildLast30RowsQuery(uniqueCombinations, dateRange);
+
+//     // Step 3: Execute the built query
+//     const [rows] = await connection.query(sqlQuery);
+
+//     connection.release();
+//     res.json(rows)
+
+//   } catch (error) {
+//     console.log(error)
+//     if (error.code === 'ER_NO_SUCH_TABLE') {
+//       res.status(404).send(`Table events doesn't exist`);
+//     } else if (error.code === 'ECONNREFUSED') {
+//       const publicIP = await getPublicIP()
+//       res.status(404).send(`Can't connect to database. Add IP of this backend: ${publicIP} to permitted.`);
+//     } else {
+//       res.status(500).send(error.message);
+//     }
+//   }
+// })
 
 app.post('/add-event', async (req, res) => {
   const { projectId, namespace, stage, isError, eventData, eventDate } = req.body;
@@ -169,6 +219,16 @@ app.post('/add-event', async (req, res) => {
     }
   }
 });
+
+app.post('/get-projects', async (req, res) => {
+  try {
+    const safeRes = await axios.post(`${process.env.SAFE_URL}/get-entries`, {})
+    res.status(200).json(safeRes.data);
+  } catch (error) {
+    res.status(500).send(error.message);
+  }
+})
+
 
 async function sendRuntimeEventToStat(triggerIP) {
   try {

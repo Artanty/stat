@@ -1,7 +1,7 @@
 import React from 'react';
 import { Line } from '@ant-design/charts';
-import { formatDate, swapObject } from './helpers';
-import { ResponseDataItem, stat_stages } from './models';
+import { formatDate, swapObject } from '../helpers';
+import { ResponseDataItem, stat_stages } from '../models';
 
 // export interface ChartDataItem {
 //     date: string,
@@ -134,6 +134,7 @@ const DemoLine = ({ events, name }) => {
         range: ['red', 'orange', '#72e97a', '#73aff5'], // Define the colors for each range
       },
     },
+    
   };
 
   return (

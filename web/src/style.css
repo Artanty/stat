@@ -6,9 +6,9 @@
     font-style: normal;
   }
 
-#root{
+#root, body{
     font-family: "Nunito", sans-serif;
-    background-color: #f1f1f1;
+    background-color: #000;
 }
 .react-grid-item{
     border: 2px solid #cfcfcf;
@@ -33,6 +33,7 @@ h2{
     margin: 5px;
     font-size: 20px;
     text-align: right;
+    color: #cfcfcf;
 }
 h3{
     margin: 0;

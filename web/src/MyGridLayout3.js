@@ -1,17 +1,17 @@
-import React, { useState, useEffect } from "react";
-import { WidthProvider, Responsive } from "react-grid-layout";
-import { groupEventsByIdAndNamespace } from "./helpers";
-import { fetchData } from "./api.service";
+import React, { useEffect, useState } from "react";
+import { Responsive, WidthProvider } from "react-grid-layout";
+import { getLastEvents } from "./api.service";
+import { useData } from './services/store';
 
-// Dynamically import components
 const components = {
   // Card5: React.lazy(() => import("./Card5")),
-  Card1: React.lazy(() => import("./Card1")),
+  Card1: React.lazy(() => import("./components/Card1")),
 };
 
 const ResponsiveReactGridLayout = WidthProvider(Responsive);
 
 const BootstrapStyleLayout = (props) => {
+  const { sharedData, sharedFilter } = useData();
   const defaultProps = {
     className: "layout",
     isDraggable: false,
@@ -20,10 +20,8 @@ const BootstrapStyleLayout = (props) => {
     rowHeight: 120,
     onLayoutChange: () => {},
     cols: { lg: 12, md: 12, sm: 12, xs: 12, xxs: 12 },
-    // cols: 12,
   };
 
-  // Generate responsive layouts
   const generateLayouts = () => {
 
     const items = [...Array(props.items || defaultProps.items)];
@@ -62,36 +60,45 @@ const BootstrapStyleLayout = (props) => {
   const [groupedEvents, setGroupedEvents] = useState({});
   const [loading, setLoading] = useState(true);
 
-  // Fetch data and group events on component mount
+  const fetchAndGroupEvents = async (payload) => {
+    const projectId = payload.projectId
+    try {
+      const events = await getLastEvents(payload);
+
+      setGroupedEvents({...groupedEvents, ...{[projectId]: events }})
+    } catch (error) {
+      console.error("Error fetching data:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchAndGroupEvents = async () => {
-      try {
-        const events = await fetchData({ "dateRange": "24 HOUR" });
-        const groupedEvents = groupEventsByIdAndNamespace(events);
-        setGroupedEvents(groupedEvents);
-      } catch (error) {
-        console.error("Error fetching data:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (Array.isArray(sharedData) && sharedData.length) {
+      sharedData
+      .filter((el) => !Object.keys(groupedEvents).includes(el)) // not to load what already loaded
+      .forEach(projectId => {
+        const payload = {
+          dateRange: sharedFilter,
+          projectId: projectId
+        }
+        fetchAndGroupEvents(payload);
+      })
+      
+    }
+  }, [sharedData, sharedFilter]);
 
-    fetchAndGroupEvents();
-  }, []);
+  useEffect(() => {
+    console.log(groupedEvents)
+  }, [groupedEvents])
 
-  
-
-  // Generate DOM elements for each group of events
   const generateDOM = () => {
-
     return Object.entries(groupedEvents).map(([key, events], index) => {
-      // const Component = components.Card5;
       const Component = components.Card1;
       return (
         <div key={index}>
           <React.Suspense fallback={<div>Loading...</div>}>
             <span className="text">
-              {/* <Component events={events} name={key} /> */}
               <Component events={events} name={key} />
             </span>
           </React.Suspense>
@@ -100,7 +107,6 @@ const BootstrapStyleLayout = (props) => {
     });
   };
 
-  // Handle layout changes
   const onLayoutChange = (layout) => {
     if (props.onLayoutChange) {
       props.onLayoutChange(layout);

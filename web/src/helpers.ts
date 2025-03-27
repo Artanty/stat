@@ -57,7 +57,10 @@ export const swapObject = (obj) => {
   return swappedObj;
 };
 
-
+// {
+//   "flow@github-back": [ event1...],
+//   "flow2@github-back": [ event1...]
+// }
 // Group events by projectId and namespace
 export const groupEventsByIdAndNamespace = (events) => {
   const groupedEvents = events.reduce((acc, event) => {

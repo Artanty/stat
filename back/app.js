@@ -6,6 +6,7 @@ const checkDBConnection = require('./core/db_check_connection')
 app.use(cors());
 app.use(express.json());
 const axios = require('axios');
+const dayjs = require('dayjs');
 
 /**
  * too much rows without filter - DO NOT USE
@@ -100,54 +101,89 @@ function buildLast30RowsQuery(combinations, dateRange) {
 }
 
 // request payload:
-// dateRange: string,
+// "dateRange": {
+//     "startDate": string
+//     "endDate": string
+//   },
 // projectIds: string
+// limit: number
 // example:
-// dateRange: "7 DAY",
-// projectId: "arms-dealer@github" | "bag@github-back"
-app.post('/get-last-events', async(req, res) => {
-  const dateRange = req.body.dateRange ?? null
-  const projectId = req.body.projectId?.split('-')[0]
-  if (!dateRange || !projectId) {
-    return res.status(404).send('!dateRange || !projectId')
+// {
+//   "projectId": "flow@github-back",
+//   "dateRange": {
+//       "startDate": "2024-01-01",
+//       "endDate": "2025-12-31"
+//   },
+//   "limit": 120
+// }
+app.post('/get-last-events', async (req, res) => {
+  const { startDate, endDate } = req.body.dateRange || {};
+  const projectId = req.body.projectId?.split('-')[0];
+  const limit = req.body.limit || 10;
+
+  // Validate required parameters
+  if (!startDate || !endDate || !projectId) {
+    return res.status(400).json({ 
+      error: 'Missing required parameters: dateRange.startDate, dateRange.endDate, or projectId' 
+    });
   }
+
   try {
-    const pool = createPool()
+    const pool = createPool();
     const connection = await pool.getConnection();
-    let sqlQuery = ''
-    const namespace = req.body.projectId?.split('-')[1]
-    if (namespace) {
-      sqlQuery = `SELECT *
-        FROM events
-        WHERE projectId = '${projectId}' AND namespace = '${namespace}'
-          AND eventDate >= NOW() - INTERVAL ${dateRange}
-        ORDER BY eventDate DESC
-        LIMIT 30`;
-    } else {
-      sqlQuery = `SELECT *
-        FROM events
-        WHERE projectId = '${projectId}' 
-          AND eventDate >= NOW() - INTERVAL ${dateRange}
-        ORDER BY eventDate DESC
-        LIMIT 30`;
+    const namespace = req.body.projectId?.split('-')[1];
+    
+    // Validate date format (optional but recommended)
+    if (!dayjs(startDate).isValid() || !dayjs(endDate).isValid()) {
+      return res.status(400).json({ error: 'Invalid date format' });
     }
-    const [rows] = await connection.query(sqlQuery);
 
+    // Parameterized query to prevent SQL injection
+    const queryParams = [projectId, startDate, endDate, limit];
+    let sqlQuery = `
+      SELECT *
+      FROM events
+      WHERE projectId = ?
+        AND eventDate BETWEEN ? AND ?
+      ORDER BY eventDate DESC
+      LIMIT ?
+    `;
+
+    // Add namespace filter if provided
+    if (namespace) {
+      sqlQuery = `
+        SELECT *
+        FROM events
+        WHERE projectId = ? 
+          AND namespace = ?
+          AND eventDate BETWEEN ? AND ?
+        ORDER BY eventDate DESC
+        LIMIT ?
+      `;
+      queryParams.splice(1, 0, namespace); // Insert namespace after projectId
+    }
+
+    const [rows] = await connection.query(sqlQuery, queryParams);
     connection.release();
-    res.json(rows)
 
+    res.json(rows);
   } catch (error) {
-    console.log(error)
+    console.error('Database error:', error);
+    
+    // Custom error handling
     if (error.code === 'ER_NO_SUCH_TABLE') {
-      res.status(404).send(`Table events doesn't exist`);
+      res.status(404).json({ error: `Table 'events' doesn't exist` });
     } else if (error.code === 'ECONNREFUSED') {
-      const publicIP = await getPublicIP()
-      res.status(404).send(`Can't connect to database. Add IP of this backend: ${publicIP} to permitted.`);
+      const publicIP = await getPublicIP();
+      res.status(503).json({ 
+        error: `Database connection refused`,
+        solution: `Add this IP to allowed connections: ${publicIP}`
+      });
     } else {
-      res.status(500).send(error.message);
+      res.status(500).json({ error: 'Internal server error' });
     }
   }
-})
+});
 
 // app.post('/get-last-events-all', async(req, res) => {
 //   const dateRange = req.body.dateRange ?? null

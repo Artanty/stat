@@ -1,3 +1,7 @@
+import dayjs, { ManipulateType } from 'dayjs';
+import duration from 'dayjs/plugin/duration';
+import relativeTime from 'dayjs/plugin/relativeTime';
+
 export function formatDate(
   dateString: string, 
   formatConfig: { 
@@ -175,3 +179,29 @@ export const getRandomColor = (): any => {
   const randomIndex = Math.floor(Math.random() * COLORS.length);
   return COLORS[randomIndex];
 };
+
+
+
+
+// Required plugins
+dayjs.extend(duration);
+dayjs.extend(relativeTime);
+
+/**
+ * Converts relative time strings to ISO 8601 timestamp
+ * @param {string} relativeTime - Format like "5 MINUTE", "1 HOUR", etc.
+ * @returns {string} ISO 8601 format (e.g. "2024-12-28T23:09:50.044Z")
+ */
+export const convertRelativeTimeToISO = (relativeTime: string): [string, string] => {
+  const now = dayjs();
+  const [value, unit] = relativeTime.split(' ');
+  
+  // Handle plural units (MONTH => months)
+  const normalizedUnit = unit.toLowerCase() + (value !== '1' ? 's' : '');
+  
+  return [
+    now.subtract(Number(value), normalizedUnit as ManipulateType).toISOString(),
+    dayjs().format('YYYY-MM-DDTHH:mm:ss.SSS[Z]')
+  ]
+}
+

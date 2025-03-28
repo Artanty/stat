@@ -12,8 +12,12 @@ export interface GetEventsRequest {
   date?: string
 }
 export interface GetLastEventsRequest {
-  dateRange: string,
-  projectId: string
+  dateRange: {
+    "startDate": string
+    "endDate": string
+  }
+  projectId: string,
+  limit: number
 }
 
 export interface GetProjectsResponseItem {

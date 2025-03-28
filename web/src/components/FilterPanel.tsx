@@ -1,13 +1,14 @@
 import { Button, Checkbox, ConfigProvider, Flex, InputNumber, InputNumberProps, Radio, RadioChangeEvent, Segmented, Slider, SliderSingleProps, Tag, theme } from 'antd';
 import React, { useEffect, useState } from 'react';
 import { StatWidget } from '~/MyGridLayout3';
+import DateSelect from './../components/DateSelect'
 import {
   AppstoreOutlined,
   BarsOutlined
 } from '@ant-design/icons';
 import { getProjectsApi, GetProjectsResponse, GetProjectsResponseItem } from "../api.service";
 import { useData } from '../services/store';
-import { getRandomColor } from '../helpers';
+import { convertRelativeTimeToISO, getRandomColor } from '../helpers';
 import { SizeType } from 'antd/es/config-provider/SizeContext';
 export const DEFAULT_DATE_RANGE = '1 HOUR'
 export interface IFilterRow {
@@ -16,8 +17,16 @@ export interface IFilterRow {
   color: string | any
 }
 const FilterPanel: React.FC = () => {
-  const { setSharedData, setSharedFilter, noDataWidgets, layoutType, setLayoutType,
-    eventsLimit, setEventsLimit
+  const { 
+    setSharedData, 
+    sharedFilter,
+    setSharedFilter, 
+    noDataWidgets, 
+    layoutType, 
+    setLayoutType,
+    eventsLimit, 
+    setEventsLimit,
+    setEventsDateRangeTrigger
   } = useData();
 
   const loadMasterProjectsCheckedState = () => {
@@ -36,22 +45,10 @@ const FilterPanel: React.FC = () => {
     }
   }
   
-  const loadDateRangeSelectedState = () => {
-    try {
-      const ls = localStorage.getItem('dateRangeSelected')
-      if (ls && typeof ls === 'string') {
-        const result = JSON.parse(ls)
-        return result
-      }
-      return DEFAULT_DATE_RANGE
-    } catch (e) {
-      console.log(e)
-      return DEFAULT_DATE_RANGE
-    }
-  }
+
   const [masterProjects, setMasterProjects] = useState<IFilterRow[]>([]);
   const [masterProjectsChecked, setMasterProjectsChecked] = useState<string[]>(loadMasterProjectsCheckedState);
-  const [dateRangeSelected, setDateRangeSelected] = useState<string>(loadDateRangeSelectedState)
+
   
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -61,6 +58,7 @@ const FilterPanel: React.FC = () => {
   const isNoDataWidget = (projectId: string): boolean => {
     return noDataWidgets?.map((el: StatWidget) => el.id).includes(projectId)
   }
+
   const buildFirstRow = () => {
     const data: IFilterRow[] = [
       { value: '5 MINUTE', label: '5 min', color: 'default' },
@@ -70,41 +68,49 @@ const FilterPanel: React.FC = () => {
       { value: '4 HOUR', label: 'Last 4 hours', color: 'default' },
       { value: '8 HOUR', label: 'Last 8 hours', color: 'default' },
       { value: '12 HOUR', label: 'Last 12 hours', color: 'default' },
-      { value: '18 HOUR', label: 'Last 12 hours', color: 'default' },
+      { value: '18 HOUR', label: 'Last 18 hours', color: 'default' },
       { value: '1 DAY', label: 'Last day', color: 'default' },
       { value: '7 DAY', label: 'Last week', color: 'default' },
       { value: '1 MONTH', label: 'Last month', color: 'default' },
       { value: '3 MONTH', label: 'Last three months', color: 'default' },
       { value: '6 MONTH', label: 'Last six months', color: 'default' },
       { value: '12 MONTH', label: 'Last year', color: 'default' },
+      { value: 'CUSTOM', label: 'CUSTOM', color: 'default' },
     ]
-    return data.map((item: IFilterRow, i: number) => (
-      <Radio.Button value={item.value} key={item.value + i}>{item.label}</Radio.Button>
-    ))
+    return data.map((item: IFilterRow, i: number) => {
+      if (item.value === 'CUSTOM') {
+        return (
+          <Radio.Button value={item.value} key={item.value + i} style={{paddingInline: '0px'}}>
+            <DateSelect></DateSelect>
+          </Radio.Button>
+          
+        )
+      } else {
+        return (
+          <Radio.Button value={item.value} key={item.value + i}>{item.label}</Radio.Button>
+        )
+      }
+    })
   }
   
   const onMasterProjectsCheckedChange = (checkedValues: string[]) => {
     setMasterProjectsChecked(checkedValues as string[])
     localStorage.setItem('masterProjectsChecked', JSON.stringify(checkedValues))
   };
-  const dateRangeSelectedChange = (e: RadioChangeEvent) => {
-    const checkedValues = e.target.value
-    setDateRangeSelected(checkedValues as string)
-    localStorage.setItem('dateRangeSelected', JSON.stringify(checkedValues))
-  }
+  
 
   const buildSecondRow = () => {
     return (
-        <Checkbox.Group value={masterProjectsChecked} onChange={onMasterProjectsCheckedChange}>
-          <Flex wrap gap="small">
-            {masterProjects.map((item: IFilterRow, i: number) => (
-              <Button color={isSelected(item.value) ? item.color : "default"} variant="outlined" key={item.value + i}>
-                <Checkbox style={{color: 'inherit'}} value={item.value}>{item.label}</Checkbox>
-                {!isNoDataWidget(item.value) || <Tag color="red">!</Tag>}
-              </Button>
-            ))}
-          </Flex>
-        </Checkbox.Group>
+      <Checkbox.Group value={masterProjectsChecked} onChange={onMasterProjectsCheckedChange}>
+        <Flex wrap gap="small">
+          {masterProjects.map((item: IFilterRow, i: number) => (
+            <Button color={isSelected(item.value) ? item.color : "default"} variant="outlined" key={item.value + i}>
+              <Checkbox style={{color: 'inherit'}} value={item.value}>{item.label}</Checkbox>
+              {!isNoDataWidget(item.value) || <Tag color="red">!</Tag>}
+            </Button>
+          ))}
+        </Flex>
+      </Checkbox.Group>
     )
   }
 
@@ -114,7 +120,10 @@ const FilterPanel: React.FC = () => {
       { value: '30', label: '30', color: 'default' },
       { value: '50', label: '50', color: 'default' },
       { value: '80', label: '80', color: 'default' },
-      { value: '100', label: '100', color: 'default' }
+      { value: '100', label: '100', color: 'default' },
+      { value: '300', label: '300', color: 'default' },
+      { value: '500', label: '500', color: 'default' },
+      // { value: '100', label: '100', color: 'default' },
     ]
     return data.map((item: IFilterRow, i: number) => (
       <Radio.Button value={item.value} key={item.value + i}>{item.label}</Radio.Button>
@@ -160,9 +169,6 @@ const FilterPanel: React.FC = () => {
   useEffect(() => {
     validateAndSendProjectsToStore()
   }, [masterProjects, masterProjectsChecked]);
-  useEffect(() => {
-    setSharedFilter(dateRangeSelected)
-  }, [dateRangeSelected]);
 
   const validateAndSendProjectsToStore = () => {
     const selected = masterProjects.map((el => el.value)).filter((el: string) => {
@@ -170,14 +176,6 @@ const FilterPanel: React.FC = () => {
     })
     setSharedData(selected);
   }
-  
-  const marks: SliderSingleProps['marks'] = {
-    10: 10,
-    30: 30,
-    50: 50,
-    80: 80,
-    100: 100
-  };
   
   return (
     <ConfigProvider
@@ -188,16 +186,28 @@ const FilterPanel: React.FC = () => {
     > 
       <Flex gap="middle">
         <Flex vertical gap="middle">
-          <Radio.Group value={dateRangeSelected} onChange={dateRangeSelectedChange}> 
+          <Radio.Group value={sharedFilter} onChange={(e) => {
+            const checkedValues = e.target.value
+            setSharedFilter(checkedValues)
+            localStorage.setItem('dateRangeSelected', JSON.stringify(checkedValues))
+            if (checkedValues !== 'CUSTOM') {
+              const [from, to] = convertRelativeTimeToISO(checkedValues)
+              setEventsDateRangeTrigger([from, to])
+            }
+          }}> 
             {buildFirstRow()}
           </Radio.Group>
           <Radio.Group defaultValue="a">
             {buildSecondRow()}
           </Radio.Group>
-        </Flex>    
+        </Flex>
+        <div>
+          
+        </div>   
         <Flex vertical gap="small" align="flex-end" style={{
           background: '#141414',
-          width: '530px',
+          width: '560px',
+          minWidth: '400px',
           padding: '4px',
           borderRadius: '14px'
         }}>
@@ -211,12 +221,11 @@ const FilterPanel: React.FC = () => {
             ]}
             onChange={(value) => setLayoutType(value as LayoutType)}
           />
-          <Radio.Group value={eventsLimit} onChange={(value) => setEventsLimit(value)}> 
+          <Radio.Group value={eventsLimit} onChange={(e) => setEventsLimit(e.target.value)}> 
             {buildLimitSteps()}
           </Radio.Group>
         </Flex>
       </Flex> 
-      
     </ConfigProvider>
   )
 }

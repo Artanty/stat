@@ -53,3 +53,8 @@ span.ant-checkbox {
 .ant-card{
     background: inherit;
 }
+
+  .ant-picker.ant-picker-range {
+    border-width: 0px;
+  }
+  

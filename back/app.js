@@ -64,7 +64,6 @@ app.post('/get-events', async (req, res) => {
   }
 });
 
-
 // Function to build the SQL query for the last 30 rows of each project@namespace
 function buildLast30RowsQuery(combinations, dateRange) {
   let queries = []

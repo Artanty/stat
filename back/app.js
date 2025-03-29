@@ -8,97 +8,6 @@ app.use(express.json());
 const axios = require('axios');
 const dayjs = require('dayjs');
 
-/**
- * too much rows without filter - DO NOT USE
- */
-app.post('/get-events', async (req, res) => {
-  const { id, projectId, namespace, stage, isError, date } = req.body;
-  let query = 'SELECT * FROM events';
-  const conditions = [];
-  const values = [];
-
-  if (id) {
-    conditions.push('id = ?');
-    values.push(id);
-  }
-  if (projectId) {
-    conditions.push('projectId = ?');
-    values.push(projectId);
-  }
-  if (namespace) {
-    conditions.push('namespace = ?');
-    values.push(namespace);
-  }
-  if (stage) {
-    conditions.push('stage = ?');
-    values.push(stage);
-  }
-  if (isError !== undefined) {
-    conditions.push('isError = ?');
-    values.push(isError);
-  }
-  if (date) {
-    conditions.push('date = ?');
-    values.push(date);
-  }
-
-  if (conditions.length > 0) {
-    query += ' WHERE ' + conditions.join(' AND ');
-  }
-  try {
-    const pool = createPool()
-    const connection = await pool.getConnection();
-    const [rows] = await connection.query(query, values);
-    connection.release();
-    res.json(rows)
-  } catch (error) {
-    console.log(error)
-    if (error.code === 'ER_NO_SUCH_TABLE') {
-      res.status(404).send(`Table events doesn't exist`);
-    } else if (error.code === 'ECONNREFUSED') {
-      const publicIP = await getPublicIP()
-      res.status(404).send(`Can't connect to database. Add IP of this backend: ${publicIP} to permitted.`);
-    } else {
-      res.status(500).send(error.message);
-    }
-  }
-});
-
-// Function to build the SQL query for the last 30 rows of each project@namespace
-function buildLast30RowsQuery(combinations, dateRange) {
-  let queries = []
-  if (dateRange) {
-    /**
-     * get last 30 rows of each for given date range
-     */
-    queries = combinations.map(({ projectId, namespace }) => {
-      return `
-          (SELECT *
-          FROM events
-          WHERE projectId = '${projectId}' AND namespace = '${namespace}'
-            AND eventDate >= NOW() - INTERVAL ${dateRange}
-          ORDER BY eventDate DESC
-          LIMIT 30)
-        `;
-    });
-  } else {
-    /**
-     * get last 30 rows of each
-     */
-    queries = combinations.map(({ projectId, namespace }) => {
-      return `
-          (SELECT *
-          FROM events
-          WHERE projectId = '${projectId}' AND namespace = '${namespace}'
-          ORDER BY eventDate DESC
-          LIMIT 30)
-        `;
-    });
-  }
-
-  return queries.join('\nUNION ALL\n');
-}
-
 // request payload:
 // "dateRange": {
 //     "startDate": string
@@ -183,39 +92,6 @@ app.post('/get-last-events', async (req, res) => {
     }
   }
 });
-
-// app.post('/get-last-events-all', async(req, res) => {
-//   const dateRange = req.body.dateRange ?? null
-//   try {
-//     const pool = createPool()
-//     const connection = await pool.getConnection();
-//     // Step 1: Get unique combinations of projectId and namespace
-//     const [uniqueCombinations] = await connection.query(`
-//         SELECT DISTINCT projectId, namespace
-//         FROM events
-//     `);
-
-//     // Step 2: Build the second query to get the last 30 rows for each combination
-//     const sqlQuery = buildLast30RowsQuery(uniqueCombinations, dateRange);
-
-//     // Step 3: Execute the built query
-//     const [rows] = await connection.query(sqlQuery);
-
-//     connection.release();
-//     res.json(rows)
-
-//   } catch (error) {
-//     console.log(error)
-//     if (error.code === 'ER_NO_SUCH_TABLE') {
-//       res.status(404).send(`Table events doesn't exist`);
-//     } else if (error.code === 'ECONNREFUSED') {
-//       const publicIP = await getPublicIP()
-//       res.status(404).send(`Can't connect to database. Add IP of this backend: ${publicIP} to permitted.`);
-//     } else {
-//       res.status(500).send(error.message);
-//     }
-//   }
-// })
 
 app.post('/add-event', async (req, res) => {
   const { projectId, namespace, stage, isError, eventData, eventDate } = req.body;

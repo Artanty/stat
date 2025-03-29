@@ -3,10 +3,6 @@ import { Line } from '@ant-design/charts';
 import { formatDate, swapObject } from '../helpers';
 import { ResponseDataItem, stat_stages } from '../models';
 
-// export interface ChartDataItem {
-//     date: string,
-//     value: number
-// }
 export interface RenderedPoint {
   value: number, color: string, name: string
 }
@@ -14,28 +10,21 @@ export interface RenderedPoint {
 export type ChartDataItem = ResponseDataItem & { renderValue: number }
 
 const formatEvents = (data: ResponseDataItem[]): ChartDataItem[] => {
-    const result: ChartDataItem[] = []
-    data.forEach((el: ResponseDataItem) => {
-        const chartItem: ChartDataItem = {
-          ...el,
-            // date: el.eventDate,
-          renderValue: stat_stages[el.stage] ?? stat_stages.UNKNOWN,
-        }
-        result.push(chartItem)
-    })
-    return result
+    return data.map((el: ResponseDataItem) => ({
+        ...el,
+        renderValue: stat_stages[el.stage] ?? stat_stages.UNKNOWN,
+    }));
 }
 
-const DemoLine = ({ events, name }) => {
+const StatLineChart = ({ events, name }) => {
   const config = {
+    theme: "classicDark",
     interaction: {
       tooltip: {
         render: (e, { title, items }) => {
-          
           return (
-            <div key={title}>
+            <div style={{ color: '#fff' }} key={title}>
               <h4>{formatDate(title.slice(0,18))}</h4>
-              {/* <h4>{title}</h4> */}
               {items
               .filter((el: RenderedPoint) => el.name === 'renderValue')
               .map((item: RenderedPoint) => {            
@@ -51,11 +40,11 @@ const DemoLine = ({ events, name }) => {
                             borderRadius: '50%',
                             backgroundColor: swapObject(stat_stages)[item.value] === 'UNKNOWN' ? 'red' : 'green',
                             marginRight: 6,
+                            
                           }}
                         ></span>
                         <span>{swapObject(stat_stages)[item.value]}</span>
                       </div>
-                      {/* <b>sdfsdfsdf</b> */}
                     </div>
                   </div>
                 );
@@ -67,53 +56,23 @@ const DemoLine = ({ events, name }) => {
     },
     data: formatEvents(events), // Use the data passed from the parent component
     legend: false,
-    // scrollbar: {
-    //   x: {
-    //     isRound: true
-    //   }
-    // },
-    // tooltip: {
-    //   // title: 'date',
-    //   // items: [{ 
-    //   //   channel: 'y',
-    //   //   name: 'custom name'
-    //   // }],
-    //   valueFormatter: (d) => 'sdsd'
-    // },
-    // tooltip: false,
-    // tooltip: {
-    //   title: (d) => (d.value > 100 ? d.name : d.age), // transform
-    // },
-    // tooltip: {
-    //   field: 'renderValue1'
-    // },
-    // interaction: {
-    //   tooltip: {
-    //     marker: false,
-    //   },
-    // },
     xField: (d) => new Date(d.eventDate),
     yField: 'renderValue',
-    point: {
-      shapeField: 'square',
-      sizeField: 4,
-    },
-    // shapeField: 'hvh',
     colorField: 'renderValue',
-    axis: {
-      grid: true,
-      x: { 
-        // title: 'eventDate' 
+    point: { // точка на графике
+      size: 6,
+      shape: 'circle',
+      sizeField: 4,
+      style: {
+        lineWidth: 2,
       },
-      // y: {
-      //   labelFormatter: (v) => swapObject(stat_stages)[v],
-      //   labelAutoEllipsis: true,
-      //   labelAutoRotate: true,
-      //   labelAutoHide: true,
-      //   labelLineWidth: 2,
-      //   labelFontSize: 10
-      // },
-      y: false
+    },
+    axis: {
+      x: { // подписи x шкалы
+        label: true,
+        labelFill: '#fff',
+      },
+      y: false // подписи вертикальной шкалы
     },
     slider: {
       x: {
@@ -124,6 +83,7 @@ const DemoLine = ({ events, name }) => {
       gradient: 'y',
       lineWidth: 2,
       lineJoin: 'round',
+      background: '#f8f9fa',
     },
     scale: {
       x: { utc: true },
@@ -134,15 +94,12 @@ const DemoLine = ({ events, name }) => {
         range: ['red', 'orange', '#72e97a', '#73aff5'], // Define the colors for each range
       },
     },
-    
   };
-
   return (
     <div>
-      {/* <h2>{name}</h2> */}
       <Line {...config} />
     </div>
   );
 };
 
-export default DemoLine;
+export default StatLineChart;

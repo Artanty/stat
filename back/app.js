@@ -143,7 +143,6 @@ app.post('/get-projects', async (req, res) => {
   }
 })
 
-
 async function sendRuntimeEventToStat(triggerIP) {
   try {
     const payload = {

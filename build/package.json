@@ -10,6 +10,6 @@
   "license": "ISC",
   "description": "",
   "devDependencies": {
-    "githooklib": "1.2.5"
+    "githooklib": "1.2.6"
   }
 }

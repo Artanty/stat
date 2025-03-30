@@ -61,14 +61,14 @@ const FilterPanel: React.FC = () => {
 
   const buildFirstRow = () => {
     const data: IFilterRow[] = [
-      { value: '5 MINUTE', label: '5 min', color: 'default' },
-      { value: '30 MINUTE', label: '30 min', color: 'default' },
+      // { value: '5 MINUTE', label: '5 min', color: 'default' },
+      // { value: '30 MINUTE', label: '30 min', color: 'default' },
       { value: '1 HOUR', label: 'Last 1 hour', color: 'default' },
-      { value: '2 HOUR', label: 'Last 2 hours', color: 'default' },
-      { value: '4 HOUR', label: 'Last 4 hours', color: 'default' },
-      { value: '8 HOUR', label: 'Last 8 hours', color: 'default' },
-      { value: '12 HOUR', label: 'Last 12 hours', color: 'default' },
-      { value: '18 HOUR', label: 'Last 18 hours', color: 'default' },
+      // { value: '2 HOUR', label: 'Last 2 hours', color: 'default' },
+      // { value: '4 HOUR', label: 'Last 4 hours', color: 'default' },
+      // { value: '8 HOUR', label: 'Last 8 hours', color: 'default' },
+      // { value: '12 HOUR', label: 'Last 12 hours', color: 'default' },
+      // { value: '18 HOUR', label: 'Last 18 hours', color: 'default' },
       { value: '1 DAY', label: 'Last day', color: 'default' },
       { value: '7 DAY', label: 'Last week', color: 'default' },
       { value: '1 MONTH', label: 'Last month', color: 'default' },
@@ -117,9 +117,9 @@ const FilterPanel: React.FC = () => {
   const buildLimitSteps = () => {
     const data: IFilterRow[] = [
       { value: '10', label: '10', color: 'default' },
-      { value: '30', label: '30', color: 'default' },
+      // { value: '30', label: '30', color: 'default' },
       { value: '50', label: '50', color: 'default' },
-      { value: '80', label: '80', color: 'default' },
+      // { value: '80', label: '80', color: 'default' },
       { value: '100', label: '100', color: 'default' },
       { value: '300', label: '300', color: 'default' },
       { value: '500', label: '500', color: 'default' },

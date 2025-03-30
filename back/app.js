@@ -13,7 +13,7 @@ const dayjs = require('dayjs');
 //     "startDate": string
 //     "endDate": string
 //   },
-// projectIds: string
+// projectId: string
 // limit: number
 // example:
 // {

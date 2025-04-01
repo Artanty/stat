@@ -45,7 +45,6 @@ const FilterPanel: React.FC = () => {
     }
   }
   
-
   const [masterProjects, setMasterProjects] = useState<IFilterRow[]>([]);
   const [masterProjectsChecked, setMasterProjectsChecked] = useState<string[]>(loadMasterProjectsCheckedState);
 
@@ -184,8 +183,8 @@ const FilterPanel: React.FC = () => {
         // algorithm: [theme.darkAlgorithm, theme.compactAlgorithm],
       }}
     > 
-      <Flex gap="middle">
-        <Flex vertical gap="middle">
+      <Flex vertical gap="middle">
+        <Flex gap="middle" justify="space-between">
           <Radio.Group value={sharedFilter} onChange={(e) => {
             const checkedValues = e.target.value
             setSharedFilter(checkedValues)
@@ -197,35 +196,32 @@ const FilterPanel: React.FC = () => {
           }}> 
             {buildFirstRow()}
           </Radio.Group>
-          <Radio.Group defaultValue="a">
-            {buildSecondRow()}
-          </Radio.Group>
+
+          <Flex gap="small" style={{
+            minWidth: '339px',
+          }}>
+            <Radio.Group value={eventsLimit} onChange={(e) => setEventsLimit(e.target.value)}> 
+              {buildLimitSteps()}
+            </Radio.Group>
+
+            <Segmented
+              value={layoutType}
+              size="middle"
+              shape="round"
+              style={{maxHeight: '32px'}}
+              options={[
+                { value: 'grid', icon: <AppstoreOutlined /> },
+                { value: 'list', icon: <BarsOutlined /> },
+              ]}
+              onChange={(value) => setLayoutType(value as LayoutType)}
+            />
+          </Flex>
         </Flex>
-        <div>
-          
-        </div>   
-        <Flex vertical gap="small" align="flex-end" style={{
-          background: '#141414',
-          width: '560px',
-          minWidth: '400px',
-          padding: '4px',
-          borderRadius: '14px'
-        }}>
-          <Segmented
-            value={layoutType}
-            size="middle"
-            shape="round"
-            options={[
-              { value: 'grid', icon: <AppstoreOutlined /> },
-              { value: 'list', icon: <BarsOutlined /> },
-            ]}
-            onChange={(value) => setLayoutType(value as LayoutType)}
-          />
-          <Radio.Group value={eventsLimit} onChange={(e) => setEventsLimit(e.target.value)}> 
-            {buildLimitSteps()}
-          </Radio.Group>
-        </Flex>
-      </Flex> 
+        
+        <Radio.Group defaultValue="a">
+          {buildSecondRow()}
+        </Radio.Group>
+      </Flex>         
     </ConfigProvider>
   )
 }

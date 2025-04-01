@@ -3,6 +3,7 @@ import MyGridLayout3 from './MyGridLayout3';
 import FilterPanel from './components/FilterPanel';
 import { DataProvider, useData } from './services/store'
 import { Breadcrumb, Layout, Menu, theme } from 'antd';
+import { VersionDisplay } from './components/VersionDisplay';
 export const DARK_BACK_COLOR = '#000'//'#070f27'
 
 const { Header, Content, Footer } = Layout;
@@ -30,6 +31,7 @@ export const App: React.FC = () => {
         }}
       >
         <FilterPanel></FilterPanel>
+        <VersionDisplay></VersionDisplay>
       </Header>
       <Content style={{ padding: '0 48px', background: DARK_BACK_COLOR, }}>
         <div

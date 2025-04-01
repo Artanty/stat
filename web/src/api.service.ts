@@ -68,4 +68,31 @@ export const getProjectsApi = async (payload?: any): Promise<GetProjectsResponse
   }
 };
 
+export interface GetProjectEntriesRequest {
+ "projectName": string
+}
+
+export const getProjectEntries = async (payload: GetProjectEntriesRequest) => {
+  console.log(payload)
+  try {
+    const response = await fetch(`${API_URL}/get-project-entries`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    if (!response.ok) {
+      throw new Error('Network response was not ok'); 
+    }
+    const data = await response.json();
+    
+    // const updData = formatDateByTimezone<ResponseDataItem>(data, 'eventDate', 'Europe/Moscow');
+    
+    return data
+  } catch (error: any) {
+    throw new Error(`Error fetching data: ${error.message}`);
+  }
+};
+
 

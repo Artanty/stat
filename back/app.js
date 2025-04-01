@@ -142,15 +142,27 @@ app.post('/get-projects', async (req, res) => {
   }
 })
 
+const validateProjectEntriesParams = (body) => {
+  const { projectId, namespace, projectName } = body;
+  if (!projectId && !projectName) {
+    throw new Error('Either projectId or projectName must be provided');
+  }
+};
+// {
+//   "projectName": "stat@github-back"
+// }
 app.post('/get-project-entries', async (req, res) => {
   try {
+    validateProjectEntriesParams(req.body)
     const safeRes = await axios.post(`${process.env.SAFE_URL}/get-project-entries`, req.body)
+    
     res.status(200).json(safeRes.data);
   } catch (error) {
-    console.log(`get-projects error: ${error}`)
-    res.status(500).send('[stat] ' + error.message);
+    console.log(`${error}`)
+    res.status(500).send(error.message);
   }
 })
+
 
 async function sendRuntimeEventToStat(triggerIP) {
   try {

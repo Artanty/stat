@@ -1,7 +1,8 @@
 {
   "name": "stat",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "description": "",
+  "type": "module",
   "main": "app.js",
   "keywords": [],
   "author": "Artanty",
@@ -18,5 +19,9 @@
     "express": "^4.19.2",
     "mysql": "^2.18.1",
     "mysql2": "^3.9.7"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^7.1.0"
   }
 }

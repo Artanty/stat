@@ -82,10 +82,10 @@ const App: React.FC = () => {
 
   const fetchProjectEntries = async (widgetId: string): Promise<Record<string, string> | null> => {
     try {
-      const res = await getProjectEntries({
+      const data = await getProjectEntries({
         projectName: widgetId
       });
-      return res.data
+      return data
     } catch (error) {
       console.error("Error fetching project entries:", error);
       return null

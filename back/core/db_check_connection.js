@@ -1,4 +1,4 @@
-const createPool = require('./db_connection')
+import createPool from './db_connection.js'
 
 async function checkDBConnection() {
   console.log('Checking DB connection...')
@@ -13,4 +13,4 @@ async function checkDBConnection() {
   }
 }
 
-module.exports = checkDBConnection
+export default checkDBConnection

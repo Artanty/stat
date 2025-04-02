@@ -38,7 +38,7 @@ export const getLastEvents = async (payload: GetLastEventsRequest) => {
     if (!response.ok) {
       throw new Error('Network response was not ok'); 
     }
-    const data = await response.json();
+    const {data} = await response.json();
     
     const updData = formatDateByTimezone<ResponseDataItem>(data, 'eventDate', 'Europe/Moscow');
     
@@ -60,7 +60,7 @@ export const getProjectsApi = async (payload?: any): Promise<GetProjectsResponse
     if (!response.ok) {
       throw new Error('Network response was not ok'); 
     }
-    const data = await response.json();
+    const {data} = await response.json();
     
     return data
   } catch (error: any) {
@@ -85,9 +85,7 @@ export const getProjectEntries = async (payload: GetProjectEntriesRequest) => {
     if (!response.ok) {
       throw new Error('Network response was not ok'); 
     }
-    const data = await response.json();
-    
-    // const updData = formatDateByTimezone<ResponseDataItem>(data, 'eventDate', 'Europe/Moscow');
+    const {data} = await response.json();
     
     return data
   } catch (error: any) {

@@ -1,12 +1,17 @@
-const express = require('express');
+import express from 'express';
+import cors from 'cors';
+import axios from 'axios';
+import dayjs from 'dayjs';
+import createPool from './core/db_connection.js';
+import checkDBConnection from './core/db_check_connection.js';
+import getVersion from './core/get_version.js'
+
+import versionInterceptor from './middleware/versionInterceptor.js'
+
 const app = express();
-const cors = require('cors');
-const createPool = require('./core/db_connection')
-const checkDBConnection = require('./core/db_check_connection')
 app.use(cors());
 app.use(express.json());
-const axios = require('axios');
-const dayjs = require('dayjs');
+app.use(versionInterceptor);
 
 // request payload:
 // "dateRange": {
@@ -74,7 +79,7 @@ app.post('/get-last-events', async (req, res) => {
     const [rows] = await connection.query(sqlQuery, queryParams);
     connection.release();
 
-    res.json(rows);
+    res.status(200).json({ data: rows });
   } catch (error) {
     console.error('Database error:', error);
     
@@ -134,8 +139,7 @@ app.post('/add-event', async (req, res) => {
 app.post('/get-projects', async (req, res) => {
   try {
     const safeRes = await axios.post(`${process.env.SAFE_URL}/get-entries`, {})
-    console.log(`get-projects result: ${safeRes}`)
-    res.status(200).json(safeRes.data);
+    res.status(200).json({ data: safeRes.data});
   } catch (error) {
     console.log(`get-projects error: ${error}`)
     res.status(500).send(error.message);
@@ -252,6 +256,7 @@ async function getPublicIP() {
 
 (async () => {
   await checkDBConnection();
+  console.log(`[VERSION] ${getVersion()}`)
   const PORT = process.env.PORT || 3000;
   app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

@@ -5,7 +5,6 @@ import dayjs from 'dayjs';
 import createPool from './core/db_connection.js';
 import checkDBConnection from './core/db_check_connection.js';
 import getVersion from './core/get_version.js'
-
 import versionInterceptor from './middleware/versionInterceptor.js'
 
 const app = express();

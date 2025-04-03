@@ -1,5 +1,5 @@
 import React from 'react';
-import MyGridLayout3 from './MyGridLayout';
+import MyGridLayout from './GridLayout';
 import FilterPanel from './components/FilterPanel';
 import { DataProvider, useData } from './services/store'
 import { Breadcrumb, Layout, Menu, theme } from 'antd';
@@ -43,7 +43,7 @@ export const App: React.FC = () => {
           }}
         >
           {/* <DebugDiv /> */}
-          <MyGridLayout3/>
+          <MyGridLayout/>
         </div>
       </Content>
       {/* <Footer style={{ textAlign: 'center' }}>

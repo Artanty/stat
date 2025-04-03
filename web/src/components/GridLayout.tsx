@@ -1,10 +1,10 @@
 import { AimOutlined, FileSearchOutlined, GithubOutlined } from "@ant-design/icons";
 import { Card, Flex, Spin } from 'antd';
 import React, { useEffect, useMemo, useState } from "react";
-import { getLastEvents, getProjectEntries } from "./api.service";
-import { DARK_BACK_COLOR } from "./App";
-import Card1 from "./components/LineChart";
-import { useData } from './services/store';
+import { getLastEvents, getProjectEntries } from "../api.service";
+import { DARK_BACK_COLOR } from "../App";
+import StatLineChart from "./LineChart";
+import { useData } from '../services/store';
 
 export interface StatWidget {
   id: string,
@@ -172,7 +172,7 @@ const App: React.FC = () => {
            },
         }}
       >
-        <Card1 events={widget.events} name={widget.id} />
+        <StatLineChart events={widget.events} name={widget.id} />
       </Card>
     );
   }, (prevProps, nextProps) => {

@@ -147,6 +147,7 @@ const validateProjectEntriesParams = (body) => {
     throw new Error('Either projectId or projectName must be provided');
   }
 };
+
 // {
 //   "projectName": "stat@github-back"
 // }

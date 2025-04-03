@@ -163,7 +163,6 @@ app.post('/get-project-entries', async (req, res) => {
   }
 })
 
-
 async function sendRuntimeEventToStat(triggerIP) {
   try {
     const payload = {

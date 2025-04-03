@@ -1,17 +1,15 @@
+import { Layout } from 'antd';
 import React from 'react';
-import MyGridLayout from './components/GridLayout';
 import FilterPanel from './components/FilterPanel';
-import { DataProvider, useData } from './services/store'
-import { Breadcrumb, Layout, Menu, theme } from 'antd';
+import MyGridLayout from './components/GridLayout';
 import { VersionDisplay } from './components/VersionDisplay';
+import { DataProvider, useData } from './services/store';
+
 export const DARK_BACK_COLOR = '#000'//'#070f27'
 
 const { Header, Content, Footer } = Layout;
 
 export const App: React.FC = () => {
-  // const {
-  //   token: { colorBgContainer, borderRadiusLG },
-  // } = theme.useToken();
 
   return (
     <DataProvider>

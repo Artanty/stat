@@ -1,7 +1,7 @@
+import dayjs from 'dayjs';
 import { createContext, useContext, useState } from 'react';
-import dayjs, { Dayjs } from 'dayjs';
-import {convertRelativeTimeToISO} from '../helpers'
-import { DEFAULT_DATE_RANGE } from '../components/FilterPanel'
+import { DEFAULT_DATE_RANGE } from '../components/FilterPanel';
+import { convertRelativeTimeToISO } from '../helpers';
 
 export const INITIAL_DATE_RANGE2 = []
 

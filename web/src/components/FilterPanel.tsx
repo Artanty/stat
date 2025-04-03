@@ -4,7 +4,7 @@ import {
 } from '@ant-design/icons';
 import { Button, Checkbox, ConfigProvider, Flex, Radio, Segmented, Tag, theme } from 'antd';
 import React, { useEffect, useState } from 'react';
-import { StatWidget } from '~/MyGridLayout3';
+import { StatWidget } from '~/MyGridLayout';
 import { getProjectsApi, GetProjectsResponse, GetProjectsResponseItem } from "../api.service";
 import { convertRelativeTimeToISO, getRandomColor } from '../helpers';
 import { useData } from '../services/store';

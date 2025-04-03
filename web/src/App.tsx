@@ -1,5 +1,5 @@
 import React from 'react';
-import MyGridLayout3 from './MyGridLayout3';
+import MyGridLayout3 from './MyGridLayout';
 import FilterPanel from './components/FilterPanel';
 import { DataProvider, useData } from './services/store'
 import { Breadcrumb, Layout, Menu, theme } from 'antd';

@@ -62,7 +62,6 @@ app.post('/get-last-events', async (req, res) => {
       LIMIT ?
     `;
 
-    // Add namespace filter if provided
     if (namespace) {
       sqlQuery = `
         SELECT *
@@ -83,7 +82,6 @@ app.post('/get-last-events', async (req, res) => {
   } catch (error) {
     console.error('Database error:', error);
     
-    // Custom error handling
     if (error.code === 'ER_NO_SUCH_TABLE') {
       res.status(404).json({ error: `Table 'events' doesn't exist` });
     } else if (error.code === 'ECONNREFUSED') {

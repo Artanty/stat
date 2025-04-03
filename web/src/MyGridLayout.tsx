@@ -1,11 +1,10 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useData } from './services/store';
+import { AimOutlined, FileSearchOutlined, GithubOutlined } from "@ant-design/icons";
+import { Card, Flex, Spin } from 'antd';
+import React, { useEffect, useMemo, useState } from "react";
 import { getLastEvents, getProjectEntries } from "./api.service";
-import { Badge, Card, Col, Flex, Row, Space, Spin } from 'antd';
-import Card1 from "./components/LineChart";
 import { DARK_BACK_COLOR } from "./App";
-import { AimOutlined, DoubleRightOutlined, FileSearchOutlined, GithubOutlined, MailOutlined } from "@ant-design/icons";
-import CopyButton from "./components/CopyButton";
+import Card1 from "./components/LineChart";
+import { useData } from './services/store';
 
 export interface StatWidget {
   id: string,

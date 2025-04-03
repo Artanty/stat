@@ -10,5 +10,4 @@ describe("GET /get-updates", () => {
 
   //   expect(res.body.message).toBe("Hello, World!");
   // });
-
 });

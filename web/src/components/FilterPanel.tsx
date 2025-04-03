@@ -1,15 +1,14 @@
-import { Button, Checkbox, ConfigProvider, Flex, InputNumber, InputNumberProps, Radio, RadioChangeEvent, Segmented, Slider, SliderSingleProps, Tag, theme } from 'antd';
-import React, { useEffect, useState } from 'react';
-import { StatWidget } from '~/MyGridLayout3';
-import DateSelect from './../components/DateSelect'
 import {
   AppstoreOutlined,
   BarsOutlined
 } from '@ant-design/icons';
+import { Button, Checkbox, ConfigProvider, Flex, Radio, Segmented, Tag, theme } from 'antd';
+import React, { useEffect, useState } from 'react';
+import { StatWidget } from '~/MyGridLayout3';
 import { getProjectsApi, GetProjectsResponse, GetProjectsResponseItem } from "../api.service";
-import { useData } from '../services/store';
 import { convertRelativeTimeToISO, getRandomColor } from '../helpers';
-import { SizeType } from 'antd/es/config-provider/SizeContext';
+import { useData } from '../services/store';
+import DateSelect from './../components/DateSelect';
 export const DEFAULT_DATE_RANGE = '1 HOUR'
 export interface IFilterRow {
   label: string, 

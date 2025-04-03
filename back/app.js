@@ -111,11 +111,9 @@ app.post('/add-event', async (req, res) => {
   const values = [projectId, namespace, stage, isError || false, eventData || '', eventDate || new Date().toISOString()];
 
   try {
-    // Get a connection from the pool
     const pool = createPool();
     const connection = await pool.getConnection();
 
-    // Execute the query
     const [result] = await connection.query(query, values);
 
     // Release the connection back to the pool

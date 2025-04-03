@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useData } from './services/store';
 import { getLastEvents, getProjectEntries } from "./api.service";
 import { Badge, Card, Col, Flex, Row, Space, Spin } from 'antd';
-import Card1 from "./components/Card1";
+import Card1 from "./components/LineChart";
 import { DARK_BACK_COLOR } from "./App";
 import { AimOutlined, DoubleRightOutlined, FileSearchOutlined, GithubOutlined, MailOutlined } from "@ant-design/icons";
 import CopyButton from "./components/CopyButton";

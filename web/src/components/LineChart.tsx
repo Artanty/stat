@@ -2,6 +2,7 @@ import React from 'react';
 import { Line } from '@ant-design/charts';
 import { formatDate, swapObject } from '../helpers';
 import { ResponseDataItem, stat_stages } from '../models';
+import { useTheme } from '../theme';
 
 export interface RenderedPoint {
   value: number, color: string, name: string
@@ -17,13 +18,18 @@ const formatEvents = (data: ResponseDataItem[]): ChartDataItem[] => {
 }
 
 const StatLineChart = ({ events, name }) => {
+  const { isDark } = useTheme();
+  const chartTheme = isDark ? 'classicDark' : 'classic';
+  const axisLabel = isDark ? '#fff' : '#555';
+  const chartBg = isDark ? '#f8f9fa' : '#ffffff';
+  const tooltipColor = isDark ? '#fff' : '#333';
   const config = {
-    theme: "classicDark",
+    theme: chartTheme,
     interaction: {
       tooltip: {
         render: (e, { title, items }) => {
           return (
-            <div style={{ color: '#fff' }} key={title}>
+            <div style={{ color: tooltipColor }} key={title}>
               <h4>{formatDate(title.slice(0,18))}</h4>
               {items
               .filter((el: RenderedPoint) => el.name === 'renderValue')
@@ -70,7 +76,7 @@ const StatLineChart = ({ events, name }) => {
     axis: {
       x: { // подписи x шкалы
         label: true,
-        labelFill: '#fff',
+        labelFill: axisLabel,
       },
       y: false // подписи вертикальной шкалы
     },
@@ -83,7 +89,7 @@ const StatLineChart = ({ events, name }) => {
       gradient: 'y',
       lineWidth: 2,
       lineJoin: 'round',
-      background: '#f8f9fa',
+      background: chartBg,
     },
     scale: {
       x: { utc: true },

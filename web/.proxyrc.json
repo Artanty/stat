@@ -1,0 +1,6 @@
+{
+  "/v1": {
+    "target": "https://api.render.com",
+    "changeOrigin": true
+  }
+}

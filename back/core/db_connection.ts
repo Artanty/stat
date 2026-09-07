@@ -1,13 +1,13 @@
-import mysql from 'mysql2/promise';
+import mysql, { Pool } from 'mysql2/promise';
 import dotenv from 'dotenv';
 dotenv.config();
 
-let pool
+let pool: Pool | undefined;
 
-function createPool () {
+function createPool(): Pool {
   if (!pool) {
     console.log('Creatig DB pool...')
-    const thisPool = mysql.createPool({
+    pool = mysql.createPool({
       database: process.env.DB_DATABASE,
       user: process.env.DB_USERNAME,
       password: process.env.DB_PASSWORD,
@@ -16,9 +16,8 @@ function createPool () {
       connectionLimit: 10,
       queueLimit: 0
     });
-    pool = thisPool
   }
-  return pool
+  return pool;
 }
 
-export default createPool
+export default createPool;

@@ -1,8 +1,8 @@
 import dotenv from 'dotenv';
 dotenv.config();
 
-const getVersion = () => {
+const getVersion = (): string => {
     return process.env.TAG_VERSION || '0.0.0.0';
 }
 
-export default getVersion
+export default getVersion;

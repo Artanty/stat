@@ -2,9 +2,9 @@ import { AimOutlined, FileSearchOutlined, GithubOutlined } from "@ant-design/ico
 import { Card, Flex, Spin } from 'antd';
 import React, { useEffect, useMemo, useState } from "react";
 import { getLastEvents, getProjectEntries } from "../api.service";
-import { DARK_BACK_COLOR } from "../App";
 import StatLineChart from "./LineChart";
 import { useData } from '../services/store';
+import { useTheme } from '../theme';
 
 export interface StatWidget {
   id: string,
@@ -13,10 +13,7 @@ export interface StatWidget {
 }
 
 const App: React.FC = () => {
-  const mainStyle = {
-    background: '#fff'
-  }
-  
+  const { colors } = useTheme();
   const { sharedData, sharedFilter, setNoDataWidgets, layoutType, 
   eventsLimit, eventsDateRangeTrigger } = useData();
   const [widgets, setWidgets] = useState<StatWidget[]>([]);
@@ -163,12 +160,12 @@ const App: React.FC = () => {
         }}
         styles={{
           header: {
-            color: '#a7a7a7',
-            backgroundColor: '#000',
-            borderBottom: '1px solid #d9d9d9',
+            color: colors.muted,
+            backgroundColor: colors.cardHeaderBg,
+            borderBottom: `1px solid ${colors.border}`,
           },
           body: {
-            background: DARK_BACK_COLOR,
+            background: colors.cardBodyBg,
            },
         }}
       >
@@ -214,7 +211,7 @@ const App: React.FC = () => {
         justifyContent: 'center', 
         alignItems: 'center', 
         height: '200px',
-        color: '#a7a7a7'
+        color: colors.muted
       }}>
         Нет данных
       </div>

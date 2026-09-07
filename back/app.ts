@@ -434,6 +434,7 @@ async function sendRuntimeEventToStat(triggerIP: string): Promise<boolean> {
   }
 }
 
+
 // Function to check if the current minute is one of [0, 15, 30, 45]
 function shouldRunStat(currentMinute: number): boolean {
   return [1, 15, 30, 45].includes(currentMinute);

@@ -2,7 +2,6 @@ import { Layout } from 'antd';
 import React from 'react';
 import FilterPanel from './FilterPanel';
 import MyGridLayout from './GridLayout';
-import { VersionDisplay } from './VersionDisplay';
 import { ThemeToggle } from './ThemeToggle';
 import { useTheme } from '../theme';
 
@@ -30,7 +29,6 @@ export const StatPanel: React.FC = () => {
       >
         <FilterPanel></FilterPanel>
         <ThemeToggle></ThemeToggle>
-        <VersionDisplay></VersionDisplay>
       </Header>
       <Content style={{ padding: '0 48px', background: colors.background, }}>
         <div

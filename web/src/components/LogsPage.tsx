@@ -6,6 +6,8 @@ import LogsTab from './LogsTab';
 import { StatPanel } from './StatPanel';
 import StatV2Tab from './StatV2Tab';
 import DeployTab from './DeployTab';
+import { FeatureSlot } from '../FeatureSlot';
+import { gateWakeTarget } from '../feat-gate';
 import { useTheme } from '../theme';
 
 export const LogsPage: React.FC = () => {
@@ -15,6 +17,18 @@ export const LogsPage: React.FC = () => {
 
   return (
     <div style={{ padding: 16, background: colors.background }}>
+      {/* feat bootstrap slots: wake-up v3 MANUAL (dormant until http-gate sees a failure
+          against the sleeping Render back), script-only infra (bus, global-loading,
+          http-gate — config in feat-gate.ts), and the version-display badge. */}
+      <FeatureSlot
+        slot="app-init"
+        attrs={{ target: gateWakeTarget(), project: 'stat', manual: '' }}
+      />
+      <FeatureSlot slot="app-infra" />
+      <FeatureSlot
+        slot="app-version"
+        attrs={{ version: process.env.TAG_VERSION || '0.0.0.0', project: 'stat', namespace: 'web' }}
+      />
       <Tabs
         activeKey={activeKey}
         onChange={(key) => setSearchParams({ tab: key })}

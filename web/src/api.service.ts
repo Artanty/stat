@@ -1,6 +1,7 @@
 import 'dotenv/config'
 import { ResponseDataItem } from './models';
 import { formatDateByTimezone } from './helpers';
+import { gatedFetch } from './feat-gate';
 const API_URL = process.env.BACKEND_URL
 
 export interface GetEventsRequest { 
@@ -28,7 +29,7 @@ export type GetProjectsResponse = GetProjectsResponseItem[]
 
 export const getLastEvents = async (payload: GetLastEventsRequest) => {
   try {
-    const response = await fetch(`${API_URL}/get-last-events`, {
+    const response = await gatedFetch(`${API_URL}/get-last-events`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -51,7 +52,7 @@ export const getLastEvents = async (payload: GetLastEventsRequest) => {
 export const getProjectsApi = async (payload?: any): Promise<GetProjectsResponse> => {
   try {
     console.log(API_URL)
-    const response = await fetch(`${API_URL}/get-projects`, {
+    const response = await gatedFetch(`${API_URL}/get-projects`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -75,7 +76,7 @@ export interface GetProjectEntriesRequest {
 export const getProjectEntries = async (payload: GetProjectEntriesRequest) => {
   console.log(payload)
   try {
-    const response = await fetch(`${API_URL}/get-project-entries`, {
+    const response = await gatedFetch(`${API_URL}/get-project-entries`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -106,7 +107,7 @@ export interface GetEventsListRequest {
 }
 
 export const getEventsList = async (payload: GetEventsListRequest) => {
-  const response = await fetch(`${API_URL}/get-events-list`, {
+  const response = await gatedFetch(`${API_URL}/get-events-list`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -142,7 +143,7 @@ export interface ProjectStatusItem {
 }
 
 export const getProjectsStatus = async (payload?: GetProjectsStatusRequest): Promise<ProjectStatusItem[]> => {
-  const response = await fetch(`${API_URL}/get-projects-status`, {
+  const response = await gatedFetch(`${API_URL}/get-projects-status`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -195,7 +196,7 @@ export interface DeployRun {
 }
 
 export const getDeployRuns = async (payload?: GetDeployRunsRequest): Promise<DeployRun[]> => {
-  const response = await fetch(`${API_URL}/get-deploy-runs`, {
+  const response = await gatedFetch(`${API_URL}/get-deploy-runs`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

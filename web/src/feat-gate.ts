@@ -23,6 +23,21 @@ export function gateWakeTarget(): string {
   return (process.env.BACKEND_URL || '').replace(/\/+$/, '') || window.location.origin;
 }
 
+/** noy@back proxy for the wake (NOY_URL env, set on deploy — e.g.
+ * https://ed-j5jw.onrender.com). Empty in dev → the wake stays in direct mode:
+ * the browser-side render poll can't wake Render cross-origin in prod, noy does it
+ * server-side (GET {proxy}/make-wake-request?target=…&app=stat). */
+export function noyProxy(): string {
+  return (process.env.NOY_URL || '').replace(/\/+$/, '');
+}
+
+/** wake-up opts for the gate recovery payload and the <wake-server> attrs —
+ * noy mode only when NOY_URL is baked in, direct otherwise. */
+export function wakeOpts(): { mode: string; proxy?: string } {
+  const proxy = noyProxy();
+  return proxy ? { mode: 'noy', proxy } : { mode: 'direct' };
+}
+
 export function installFeatGateConfig(): void {
   window.FEAT_GATE_CONFIG = {
     // ERROR 503 = the sleeping-provider answer where readable; NETWORK = preflighted
@@ -32,8 +47,12 @@ export function installFeatGateConfig(): void {
       { on: 'ERROR', trigger: 503 },
       { on: 'NETWORK' },
     ],
-    recovery: { event: 'wake-up', payload: { target: gateWakeTarget(), project: 'stat' } },
-    // bus default is 5s; a Render cold start runs ~1 min — keep above wake-up's budget
+    recovery: {
+      event: 'wake-up',
+      payload: { target: gateWakeTarget(), project: 'stat', ...wakeOpts() },
+    },
+    // bus default is 5s; noy (itself a sleeping Render service) + a Render cold start
+    // can run minutes — keep above wake-up's budget
     timeoutMs: 200000,
   };
 }

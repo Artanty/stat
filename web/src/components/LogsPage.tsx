@@ -7,7 +7,7 @@ import { StatPanel } from './StatPanel';
 import StatV2Tab from './StatV2Tab';
 import DeployTab from './DeployTab';
 import { FeatureSlot } from '../FeatureSlot';
-import { gateWakeTarget } from '../feat-gate';
+import { gateWakeTarget, wakeOpts } from '../feat-gate';
 import { useTheme } from '../theme';
 
 export const LogsPage: React.FC = () => {
@@ -22,7 +22,7 @@ export const LogsPage: React.FC = () => {
           http-gate — config in feat-gate.ts), and the version-display badge. */}
       <FeatureSlot
         slot="app-init"
-        attrs={{ target: gateWakeTarget(), project: 'stat', manual: '' }}
+        attrs={{ target: gateWakeTarget(), project: 'stat', manual: '', ...wakeOpts() }}
       />
       <FeatureSlot slot="app-infra" />
       <FeatureSlot

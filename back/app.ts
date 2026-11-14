@@ -8,6 +8,7 @@ import { fileURLToPath } from 'url';
 import type { ResultSetHeader } from 'mysql2/promise';
 import createPool from './core/db_connection.js';
 import checkDBConnection from './core/db_check_connection.js';
+import ensureDeployColumns from './core/ensure_deploy_columns.js';
 import getVersion from './core/get_version.js';
 import versionInterceptor from './middleware/versionInterceptor.js';
 import retry from 'async-retry';
@@ -65,6 +66,60 @@ interface AddEventBody {
   isError?: boolean;
   eventData?: string;
   eventDate?: string;
+  workflow?: string;
+  workflowRunId?: string;
+  commitMessage?: string;
+  steps?: string | string[];
+}
+
+const DEPLOY_STAGES = ['MASTER_START', 'MASTER_END', 'MASTER_ERROR', 'SLAVE_START', 'SLAVE_END', 'SLAVE_ERROR'] as const;
+type DeployStage = (typeof DEPLOY_STAGES)[number];
+
+interface DeployEventDto {
+  id: number;
+  projectId: string;
+  namespace: string;
+  stage: string;
+  workflow: string | null;
+  isError: number;
+  eventData: string;
+  eventDate: string;
+  steps: string[];
+  commitMessage: string | null;
+}
+
+interface DeployRunDto {
+  workflowRunId: string;
+  projectId: string;
+  namespace: string;
+  commitMessage: string | null;
+  tag: string;
+  startDate: string;
+  endDate: string;
+  hasError: boolean;
+  stages: Partial<Record<DeployStage, DeployEventDto>>;
+  events: DeployEventDto[];
+}
+
+interface GetDeployRunsBody {
+  projectId?: string;
+  workflowRunId?: string;
+  dateRange?: { startDate?: string; endDate?: string };
+  limit?: number;
+}
+
+// steps arrive as a JSON array string ('["start","checkout"]') from the workflows
+function parseSteps(raw: unknown): string[] {
+  if (typeof raw !== 'string' || raw === '') return [];
+  if (raw.startsWith('[')) {
+    try {
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed.map(String) : [];
+    } catch {
+      return [];
+    }
+  }
+  return raw.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
 interface CheckDBRow {
@@ -157,16 +212,32 @@ app.post('/get-last-events', async (req: Request, res: Response) => {
 });
 
 app.post('/add-event', async (req: Request, res: Response) => {
-  const { projectId, namespace, stage, isError, eventData, eventDate } = req.body as AddEventBody;
+  const { projectId, namespace, stage, isError, eventData, eventDate, workflow, workflowRunId, commitMessage, steps } = req.body as AddEventBody;
 
   // Validate required fields
   if (!projectId || !namespace || !stage) {
     return res.status(400).json({ error: 'projectId, namespace, and stage are required' });
   }
 
-  // Prepare query and values
-  const query = 'INSERT INTO events (projectId, namespace, stage, isError, eventData, eventDate) VALUES (?, ?, ?, ?, ?, ?)';
+  // Base columns always present; deploy-telemetry columns only when provided
+  const columns = ['projectId', 'namespace', 'stage', 'isError', 'eventData', 'eventDate'];
   const values: (string | boolean)[] = [projectId, namespace, stage, isError || false, eventData || '', eventDate || new Date().toISOString()];
+  // workflows send steps as a JSON array ("[]") or a JSON array string — store the string form
+  const stepsValue = Array.isArray(steps) ? JSON.stringify(steps) : steps;
+  const extras: [string, string | undefined][] = [
+    ['workflow', workflow],
+    ['workflowRunId', workflowRunId],
+    ['commitMessage', commitMessage],
+    ['steps', stepsValue],
+  ];
+  for (const [column, value] of extras) {
+    // empty string = field absent (e.g. slave .env without WORKFLOW_RUN_ID) — keep it NULL
+    if (value !== undefined && value !== null && value !== '') {
+      columns.push(column);
+      values.push(value);
+    }
+  }
+  const query = `INSERT INTO events (${columns.join(', ')}) VALUES (${columns.map(() => '?').join(', ')})`;
 
   try {
     const pool = createPool();
@@ -181,6 +252,107 @@ app.post('/add-event', async (req: Request, res: Response) => {
     res.status(201).json({ id: (result as ResultSetHeader).insertId });
   } catch (error: any) {
     appendErrorLog({ timestamp: new Date().toISOString(), route: '/add-event', method: 'POST', error: error.message, stack: error.stack });
+    console.log(error);
+    if (error?.code === 'ER_NO_SUCH_TABLE') {
+      res.status(404).send(`Table events doesn't exist`);
+    } else if (error?.code === 'ECONNREFUSED') {
+      const publicIP = await getPublicIP();
+      res.status(404).send(`Can't connect to database. Add IP of this backend: ${publicIP} to permitted.`);
+    } else {
+      res.status(500).send(error?.message);
+    }
+  }
+});
+
+// request payload (all optional):
+// {
+//   "projectId": string,
+//   "workflowRunId": string,
+//   "dateRange": { "startDate": string, "endDate": string },
+//   "limit": number   // max runs returned, default 50
+// }
+// groups deploy events by workflowRunId into run objects (master/slave stages map)
+app.post('/get-deploy-runs', async (req: Request, res: Response) => {
+  const body = req.body as GetDeployRunsBody;
+  const { projectId, workflowRunId, dateRange, limit } = body || {};
+
+  const conditions: string[] = ['workflowRunId IS NOT NULL'];
+  const queryParams: (string | number)[] = [];
+  if (projectId) {
+    conditions.push('projectId = ?');
+    queryParams.push(projectId);
+  }
+  if (workflowRunId) {
+    conditions.push('workflowRunId = ?');
+    queryParams.push(workflowRunId);
+  }
+  if (dateRange?.startDate) {
+    conditions.push('eventDate >= ?');
+    queryParams.push(dateRange.startDate);
+  }
+  if (dateRange?.endDate) {
+    conditions.push('eventDate <= ?');
+    queryParams.push(dateRange.endDate);
+  }
+  // a run has up to ~6 events; fetch a window, group, then trim to the run limit
+  queryParams.push(Math.max((limit || 50) * 8, 100));
+  const query = `SELECT id, projectId, namespace, stage, isError, eventData, eventDate, workflow, workflowRunId, commitMessage, steps
+    FROM events WHERE ${conditions.join(' AND ')} ORDER BY id DESC LIMIT ?`;
+
+  try {
+    const pool = createPool();
+    const [rows] = await pool.query(query, queryParams);
+    const dbRows = rows as (EventRow & { workflow: string | null; workflowRunId: string; commitMessage: string | null; steps: string | null })[];
+
+    const byRun = new Map<string, DeployEventDto[]>();
+    for (const row of dbRows) {
+      const dto: DeployEventDto = {
+        id: row.id,
+        projectId: row.projectId,
+        namespace: row.namespace,
+        stage: row.stage,
+        workflow: row.workflow,
+        isError: row.isError,
+        eventData: row.eventData,
+        eventDate: row.eventDate,
+        steps: parseSteps(row.steps),
+        commitMessage: row.commitMessage,
+      };
+      const list = byRun.get(row.workflowRunId) || [];
+      list.unshift(dto); // rows are newest-first; unshift keeps chronological order per run
+      byRun.set(row.workflowRunId, list);
+    }
+
+    const runs: DeployRunDto[] = [...byRun.entries()]
+      .map(([runId, events]) => {
+        const stages: DeployRunDto['stages'] = {};
+        for (const e of events) {
+          if ((DEPLOY_STAGES as readonly string[]).includes(e.stage)) {
+            const stage = e.stage as DeployStage;
+            if (!stages[stage]) stages[stage] = e;
+          }
+        }
+        const first = events[0];
+        const last = events[events.length - 1];
+        return {
+          workflowRunId: runId,
+          projectId: first.projectId,
+          namespace: first.namespace,
+          commitMessage: events.map((e) => e.commitMessage).find((v) => v) || null,
+          tag: events.map((e) => e.eventData).find((v) => v) || '',
+          startDate: first.eventDate,
+          endDate: last.eventDate,
+          hasError: events.some((e) => e.isError === 1),
+          stages,
+          events,
+        };
+      })
+      .sort((a, b) => (a.startDate < b.startDate ? 1 : -1))
+      .slice(0, limit || 50);
+
+    res.json({ data: runs });
+  } catch (error: any) {
+    appendErrorLog({ timestamp: new Date().toISOString(), route: '/get-deploy-runs', method: 'POST', error: error.message, stack: error.stack });
     console.log(error);
     if (error?.code === 'ER_NO_SUCH_TABLE') {
       res.status(404).send(`Table events doesn't exist`);
@@ -496,6 +668,13 @@ async function getPublicIP(): Promise<string | null> {
 }
 
 (async () => {
+  try {
+    const added = await ensureDeployColumns();
+    if (added.length) console.log(`[ensure_deploy_columns] added: ${added.join(', ')}`);
+  } catch (error: any) {
+    appendErrorLog({ timestamp: new Date().toISOString(), route: 'ensure_deploy_columns', method: 'startup', error: error.message, stack: error.stack });
+    console.log(`[ensure_deploy_columns] failed: ${error.message}`);
+  }
   await checkDBConnection();
   console.log(`[VERSION] ${getVersion()}`)
   const PORT = process.env.PORT || 3000;

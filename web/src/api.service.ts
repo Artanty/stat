@@ -156,6 +156,59 @@ export const getProjectsStatus = async (payload?: GetProjectsStatusRequest): Pro
   return body.data;
 };
 
+export interface GetDeployRunsRequest {
+  projectId?: string,
+  workflowRunId?: string,
+  dateRange?: {
+    startDate?: string,
+    endDate?: string
+  },
+  limit?: number
+}
+
+export interface DeployEvent {
+  id: number,
+  projectId: string,
+  namespace: string,
+  stage: string,
+  workflow: string | null,
+  isError: number,
+  eventData: string,
+  eventDate: string,
+  steps: string[],
+  commitMessage: string | null
+}
+
+export type DeployStage = 'MASTER_START' | 'MASTER_END' | 'MASTER_ERROR' | 'SLAVE_START' | 'SLAVE_END' | 'SLAVE_ERROR'
+
+export interface DeployRun {
+  workflowRunId: string,
+  projectId: string,
+  namespace: string,
+  commitMessage: string | null,
+  tag: string,
+  startDate: string,
+  endDate: string,
+  hasError: boolean,
+  stages: Partial<Record<DeployStage, DeployEvent>>,
+  events: DeployEvent[]
+}
+
+export const getDeployRuns = async (payload?: GetDeployRunsRequest): Promise<DeployRun[]> => {
+  const response = await fetch(`${API_URL}/get-deploy-runs`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(payload || {}),
+  });
+  if (!response.ok) {
+    throw new Error(`Network response was not ok: ${response.status}`);
+  }
+  const body = await response.json();
+  return body.data;
+};
+
 export const RENDER_LOGS_URL = '/v1/logs'
 
 export interface RenderLogEntry {

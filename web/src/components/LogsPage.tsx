@@ -5,6 +5,7 @@ import ListTab from './ListTab';
 import LogsTab from './LogsTab';
 import { StatPanel } from './StatPanel';
 import StatV2Tab from './StatV2Tab';
+import DeployTab from './DeployTab';
 import { useTheme } from '../theme';
 
 export const LogsPage: React.FC = () => {
@@ -20,6 +21,7 @@ export const LogsPage: React.FC = () => {
         items={[
           { key: 'stat', label: 'stat', children: <StatPanel /> },
           { key: 'stat-v2', label: 'stat v2', children: <StatV2Tab /> },
+          { key: 'deploy', label: 'deploy', children: <DeployTab /> },
           { key: 'logs', label: 'render.com logs', children: <LogsTab /> },
           { key: 'list', label: 'list', children: <ListTab /> },
         ]}

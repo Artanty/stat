@@ -23,10 +23,10 @@ export function gateWakeTarget(): string {
   return (process.env.BACKEND_URL || '').replace(/\/+$/, '') || window.location.origin;
 }
 
-/** noy@back proxy for the wake (NOY_URL env, set on deploy — e.g.
- * https://ed-j5jw.onrender.com). Empty in dev → the wake stays in direct mode:
- * the browser-side render poll can't wake Render cross-origin in prod, noy does it
- * server-side (GET {proxy}/make-wake-request?target=…&app=stat). */
+/** noy@back proxy for the wake (NOY_URL env, set on deploy to the noy Timeweb VH
+ * address). Empty in dev → the wake stays in direct mode: the browser-side render
+ * poll can't wake Render cross-origin in prod, noy does it server-side
+ * (GET {proxy}/make-wake-request?target=…&app=stat). */
 export function noyProxy(): string {
   return (process.env.NOY_URL || '').replace(/\/+$/, '');
 }

@@ -19,9 +19,10 @@ export interface FeatureConfig {
 }
 
 /** Slots:
- * - `app-init` — wake-up v3 in MANUAL mode: resident but dormant, serves bus `wake-up`
+ * - `app-init` — wake-up v4 in MANUAL mode: resident but dormant, serves bus `wake-up`
  *   requests only; http-gate sends them when gated traffic fails while the Render back
- *   sleeps. v3 picks the wake way by URL: stat-3lmc.onrender.com → render strategy.
+ *   sleeps. v4 picks the wake way by URL (stat-3lmc.onrender.com → render strategy) and
+ *   retries the noy call while noy itself is a cold TW-VH app.
  * - `app-infra` — script-only: the bus (request/reply transport), global-loading
  *   (blocking backdrop while a recovery runs), http-gate (config in feat-gate.ts).
  * - `app-version` — the feat `<deploy-info>` badge (version-display v4). */
@@ -37,7 +38,7 @@ export function bootstrapFeatures(featUrl: string): FeatureConfig[] {
     namespace: 'js-web',
   });
   return [
-    row('app-init', 'wake-up', 'v3', 'wake-server'),
+    row('app-init', 'wake-up', 'v4', 'wake-server'),
     row('app-infra', 'bus', 'v1'),
     row('app-infra', 'global-loading', 'v1'),
     row('app-infra', 'http-gate', 'v2'),

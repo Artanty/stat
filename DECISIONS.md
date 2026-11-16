@@ -159,3 +159,12 @@
 ### Progress (2026-11-16, 2) - wake-up v4 (noy cold retry) pinned; deploys pending
 - stat web `feat.ts` wake-up row v3 → v4 (+ comment). Build OK. feat v4 details in feat/DECISIONS.md (77/77 tests; runNoy retries a cold TW-VH noy every 3s within the budget; bus payload proxy/project now honored).
 - Deploy order: 1) feat `-d` (ships v4 — feat.twc1.net currently 404s on it), 2) stat `-d` (picks up the v4 pin; FEAT_URL=https://feat.twc1.net + NOY_URL=https://noy.twc1.net + BACKEND_URL already in the deployed env per the 10:44 HAR — that deploy's warm+gate+wake chain all worked; only the noy call died cold, which v4 fixes).
+
+## Plan (2026-11-16, 3) - Route stat API traffic thru noy behind explicit env
+- User decision: stat@web routes its API calls through noy's new /thru endpoint ONLY when an explicit env exists (THRU_URL; empty = current direct+gate behavior, which stays untouched — wake-up/features working, no changes there).
+- Plan: feat-gate.ts gatedFetch gains a thru branch — when THRU_URL is baked: warm the thru host first (poll /healthz, 1s interval, 60s budget — noy is a cold TW-VH Passenger, same fast-fail as feat), then fetch `${THRU_URL}/thru?target=<full API url>&method=&body=` (thru mirrors the upstream response, so callers see an identical Response). Direct branch unchanged. web/.env += THRU_URL= placeholder.
+
+### Progress (2026-11-16, 3)
+- feat-gate.ts gatedFetch: THRU_URL branch (thruUrl()/thruHostReady() warm poll /healthz 1s/60s — noy is a cold TW-VH Passenger; then fetch `${THRU_URL}/thru?target=…&method=&body=`, thru mirrors the upstream Response). Direct+gate branch untouched. web/.env += THRU_URL= placeholder. Build OK, type-clean.
+- E2E verified locally: noy :3299 (FEAT_THRU=true) + back :3230 + web dev THRU_URL=http://localhost:3299 — stat v2 tab renders live project data; noy log shows the app's real /thru POSTs (get-projects-status) returning 200. Wake-up/features untouched per user.
+- Deploy: stat `-d` with THRU_URL=https://noy.twc1.net in the web env (after noy deploys with FEAT_THRU=true). Empty THRU_URL = old direct+gate behavior.

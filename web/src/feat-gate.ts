@@ -85,9 +85,53 @@ export function waitForFeatGate(): Promise<void> {
   return gateReady;
 }
 
-/** The fetch wrapper for every stat API call: through the gate when it loaded
- * (park + wake + retry on failure), plain fetch otherwise. */
+/** The fetch wrapper for every stat API call. Two transports:
+ * - THRU_URL baked in → route through that backend's feat `thru` endpoint
+ *   (GET {THRU_URL}/thru?target=…&method=&body= — it mirrors the upstream response).
+ *   For networks that cannot reach the back directly (e.g. the local Render block).
+ *   The thru host is warmed first — it may be a cold TW-VH Passenger (fast-fail ~50ms).
+ * - otherwise → through the http-gate when it loaded (park + wake + retry on failure),
+ *   plain fetch otherwise. */
+export function thruUrl(): string {
+  return (process.env.THRU_URL || '').replace(/\/+$/, '');
+}
+
+let thruReady: Promise<void> | null = null;
+
+function thruHostReady(): Promise<void> {
+  const base = thruUrl();
+  if (!thruReady) {
+    thruReady = new Promise((resolve) => {
+      const started = Date.now();
+      const ping = () =>
+        fetch(`${base}/healthz`, { cache: 'no-store' }).then(
+          (r) => {
+            if (r.ok || Date.now() - started > 60000) resolve();
+            else setTimeout(ping, 1000);
+          },
+          () => {
+            if (Date.now() - started > 60000) resolve();
+            else setTimeout(ping, 1000);
+          },
+        );
+      ping();
+    });
+  }
+  return thruReady;
+}
+
 export async function gatedFetch(url: string, init?: RequestInit): Promise<Response> {
+  const thru = thruUrl();
+  if (thru) {
+    await thruHostReady();
+    const method = (init?.method || 'GET').toLowerCase();
+    const body = typeof init?.body === 'string' ? init.body : null;
+    const qs =
+      'target=' + encodeURIComponent(url) +
+      (method !== 'get' ? '&method=' + method : '') +
+      (body ? '&body=' + encodeURIComponent(body) : '');
+    return fetch(`${thru}/thru?${qs}`);
+  }
   await waitForFeatGate();
   return (window.featGate?.request ?? fetch)(url, init);
 }

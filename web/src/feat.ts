@@ -46,3 +46,33 @@ export function bootstrapFeatures(featUrl: string): FeatureConfig[] {
 }
 
 export const BOOTSTRAP_FEATURES = bootstrapFeatures(process.env.FEAT_URL || '');
+
+/** The feat host (feat.twc1.net) is a cold Passenger app on Timeweb VH: after idle the
+ * first request burst fails fast at connection level (~50ms, status 0) — script tags
+ * die, the gate never loads, the whole feature chain is dead. This shared promise warms
+ * the host BEFORE any feature script is injected: poll /manifest.json (the cheap
+ * endpoint version-display already fetches cross-origin) every 1s until it answers ok,
+ * bounded at 60s. Always RESOLVES (a warm failure just means the scripts get their
+ * chance anyway) — one warm attempt per page, shared by all slots and the gate. */
+export function featHostReady(): Promise<void> {
+  const base = (process.env.FEAT_URL || '').replace(/\/+$/, '');
+  if (!base) return Promise.resolve();
+  if (!(featHostReady as any).__promise) {
+    (featHostReady as any).__promise = new Promise<void>((resolve) => {
+      const startedAt = Date.now();
+      const ping = () =>
+        fetch(`${base}/manifest.json`, { cache: 'no-store' }).then(
+          (r) => {
+            if (r.ok || Date.now() - startedAt > 60000) resolve();
+            else setTimeout(ping, 1000);
+          },
+          () => {
+            if (Date.now() - startedAt > 60000) resolve();
+            else setTimeout(ping, 1000);
+          },
+        );
+      ping();
+    });
+  }
+  return (featHostReady as any).__promise;
+}

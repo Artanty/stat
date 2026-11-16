@@ -59,19 +59,27 @@ export function installFeatGateConfig(): void {
 
 let gateReady: Promise<void> | null = null;
 
+async function warmThenPoll(resolve: () => void): Promise<void> {
+  const { featHostReady } = await import('./feat');
+  await featHostReady();
+  const started = Date.now();
+  (function poll() {
+    if (window.featGate || Date.now() - started > 3000) return resolve();
+    setTimeout(poll, 50);
+  })();
+}
+
 /** gatedFetch waits on this before its FIRST request: the app's boot fetches race the
  * app-infra script loads, and a failure that slips past before http-gate exists surfaces
- * as a dead user-visible error. Bounded at 3s; without FEAT_URL (dev/tests without the
- * feat host) there is no gate and this resolves at once. */
+ * as a dead user-visible error. First awaits the feat-host warm (a cold feat.twc1.net
+ * means no gate for minutes — the wait is the whole point), then a 3s gate poll;
+ * without FEAT_URL (dev/tests without the feat host) there is no gate and this
+ * resolves at once. */
 export function waitForFeatGate(): Promise<void> {
   if (window.featGate || !process.env.FEAT_URL) return Promise.resolve();
   if (!gateReady) {
     gateReady = new Promise((resolve) => {
-      const started = Date.now();
-      (function poll() {
-        if (window.featGate || Date.now() - started > 3000) return resolve();
-        setTimeout(poll, 50);
-      })();
+      warmThenPoll(resolve);
     });
   }
   return gateReady;

@@ -1,5 +1,5 @@
 import React, { createElement, useEffect, useState } from 'react';
-import { BOOTSTRAP_FEATURES, type FeatureConfig } from './feat';
+import { BOOTSTRAP_FEATURES, featHostReady, type FeatureConfig } from './feat';
 
 /** A named mount point for a remote feat web-component (plst@web's FeatureSlot,
  * bootstrap-rows only — stat has no runtime features config to fetch). Loads the
@@ -58,7 +58,9 @@ function SlotRow({
 
   useEffect(() => {
     let alive = true;
-    loadScript(scriptUrl).then(
+    // the feat host may itself be a cold Passenger app (feat.twc1.net): warm it before
+    // injecting scripts, or the whole burst fails fast at connection level
+    featHostReady().then(() => loadScript(scriptUrl)).then(
       () => alive && setReady(true),
       () => {
         /* stay silent: the slot renders nothing */

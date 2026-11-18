@@ -1,5 +1,28 @@
 # DECISIONS.md
 
+## Task: SDUI polish — theme-aware colors, status simplification, header row layout
+
+### Plan (2026-11-18, 2)
+1. miniEnvelope palette theme-aware via expressions on the host global `theme` var (theme-changer pattern): project name near-black in light / near-white in dark (fixes white-on-white), same for text/muted/chip-unlit/separator grays. Accent colors (green/red/blue/yellow) constant.
+2. STATUS_META 'master-done' label → 'done' in web deployTimeline.tsx + miniEnvelope (timeline carries the details).
+3. SDUI header row: `[status icon] projectName | namespace | version` — icon (✓ green done / ✓ yellow master-done / ✕ red error / ● gray running) before project name; namespace after name; 3 items, not 4.
+
+### Progress (2026-11-18, 2)
+- DONE, verified in CfT light + dark. NOT deployed (needs stat `-d`).
+- miniEnvelope.ts: palette theme-aware via `@{theme == 'dark' ? … : …}` expressions on the ext host global (theme-changer pattern): strong/text/gray/unlit/line switch; green/red/blue/yellow constant. STATUS_META master-done label → 'done' (also web deployTimeline.tsx). Header row now `[✓|✕|● colored] projectName | namespace | v{tag}` — 3 items + icon (✓ green done / ✓ yellow master-done / ✕ red / ● gray running), status text label dropped from the row.
+- Verified computed colors: light `stat@github` #111827 on white; dark #F9FAFB on #111827 (screenshots web-ext/.e2e/theme-light.png, theme-dark.png). back tsc clean; web tsc only pre-existing rc-picker error.
+- ext side (support): builtin.ts gained `STAT_DIRECT=1` build flag (direct fetch bypassing thru; local-dev only — thru target localhost resolves on the feat host, so local stubs must bypass; documented in .env.example). Final build prod-pointed, typecheck + 21 tests green.
+- FOUND ext BUG (not fixed, user's theme-changer thread): theme persistence clobbers at boot — DivKit `variable.subscribe` fires IMMEDIATELY with the current value, so `applyTheme('light')` at initShell writes `theme: 'light'` to storage before the boot read of the stored value; a stored 'dark' never survives a reload (verified: set dark → reload → light). Dark-theme test required a temp default-dark build (reverted).
+
+## Task: deploy tab — namespace filter in runs block
+
+### Plan (2026-11-18)
+- Runs column header (next to "N runs" + reload) gains a small Select 'namespace' with options derived from the loaded runs (all/web/back/… — extensible, no hardcoded list), default 'all', persisted `deployTabNamespace`.
+- `visibleRuns` additionally filters by namespace; derived counts (allVisibleCount, newestVisibleRun) follow too. Selected-run fallback effect already re-picks when list changes.
+
+### Progress (2026-11-18)
+- DONE in DeployTab.tsx: `namespace` state (persisted `deployTabNamespace`), `namespaces` memo derived from runs (sorted unique — extensible, no hardcoded list), shared `nsOk` filter applied to visibleRuns + allVisibleCount + newestVisibleRun; runs header shows small Select ('all ns' + options) beside the count; stale persisted ns falls back to 'all'. tsc: only pre-existing rc-picker node_modules error; parcel build OK. NOT deployed — needs stat `-d`.
+
 ## Task: date display cleanup (web + SDUI)
 
 ### Plan (2026-11-18)
@@ -272,3 +295,8 @@
 - last OFF: select enabled, reload button active — click re-fetches runs (whole block info).
 - last ON: select disabled and pinned to the project of the newest run (runs arrive newest-first, so runs[0].projectId); everything auto-reloads every 60s (setInterval, cleaned up on toggle off); reload button disabled.
 - Verified live in IAB both states. tsc clean. NOT deployed — needs stat `-d`.
+
+### Plan/Progress (2026-11-18, 13) - master-done badge green
+- Cause: newest run (stat@github back 1.0.22.1.0.28) has only MASTER_START/MASTER_END (no slave events ingested) -> runStatus 'master-done' -> warning(yellow). User: last deploy succeeded, want green.
+- Change: deployTimeline.tsx STATUS_META['master-done'].badge warning -> success. 'master-done' state kept (distinguishes runs w/o slave events) but renders green like 'done'.
+- Scope: web only; NOT deployed — needs stat -d.

@@ -4,14 +4,19 @@ import type { DeployRunDto } from './deployRuns.js';
 // /mini widget's run-info + timeline blocks for the ext side-panel host — a port of
 // web/src/deployTimeline.tsx logic, latest-run-only, no variables/actions (pure data).
 
+// theme-aware via expressions on the ext host's global `theme` variable
+// (theme-changer pattern: the card declares nothing, the global resolves first)
+const tc = (dark: string, light: string): string => `@{theme == 'dark' ? '${dark}' : '${light}'}`;
 const COLORS = {
   green: '#52C41A',
   red: '#FF4D4F',
   blue: '#1677FF',
   yellow: '#FAAD14',
-  gray: '#8C8C8C',
-  text: '#D1D5DB',
-  line: '#4B5563',
+  gray: tc('#9CA3AF', '#8C8C8C'),
+  unlit: tc('#6B7280', '#B0B7C3'),
+  text: tc('#D1D5DB', '#1F2937'),
+  strong: tc('#F9FAFB', '#111827'),
+  line: tc('#4B5563', '#D1D5DB'),
 } as const;
 
 const MASTER_CHIPS = ['start', 'checkout', 'tech-stack', 'safe', 'env-created', 'push'];
@@ -29,7 +34,7 @@ type RunStatus = 'error' | 'running' | 'master-done' | 'done';
 const STATUS_META: Record<RunStatus, { color: string; label: string }> = {
   error: { color: COLORS.red, label: 'error' },
   running: { color: COLORS.gray, label: 'running' },
-  'master-done': { color: COLORS.yellow, label: 'master done' },
+  'master-done': { color: COLORS.yellow, label: 'done' },
   done: { color: COLORS.green, label: 'done' },
 };
 
@@ -106,7 +111,7 @@ const chipsRow = (steps: string[], chips: string[], top = 4): Div =>
     chips.map((c) =>
       text(c, {
         font_size: 10,
-        text_color: steps.includes(c) ? COLORS.green : '#6B7280',
+        text_color: steps.includes(c) ? COLORS.green : COLORS.unlit,
         width: { type: 'wrap_content' },
         margins: { right: 8, top },
       })
@@ -205,13 +210,18 @@ export function buildMiniEnvelope(run: DeployRunDto | null): Record<string, unkn
         // run-info block
         vContainer(
           [
-            hContainer([
-              // project name first — without it the run has no identity (no selector in the envelope)
-              text(run.projectId, { font_size: 13, text_color: '#F9FAFB', font_weight: 'medium' }),
-              text(status.label, { font_size: 13, text_color: status.color, font_weight: 'medium', margins: { left: 8 } }),
-              ...(run.tag ? [text(`v${run.tag}`, { font_size: 12, text_color: COLORS.blue, margins: { left: 8 } })] : []),
-              text(run.namespace, { font_size: 12, text_color: COLORS.gray, margins: { left: 8 } }),
-            ]),
+        // [status icon] projectName | namespace | version — 3 parts, status label lives in the icon color
+        hContainer([
+          text(
+            { done: '✓', 'master-done': '✓', error: '✕', running: '●' }[runStatus(run)],
+            { font_size: 12, text_color: status.color, width: { type: 'wrap_content' }, margins: { right: 6 } }
+          ),
+          text(run.projectId, { font_size: 13, text_color: COLORS.strong, font_weight: 'medium' }),
+          text(run.namespace, { font_size: 11, text_color: COLORS.gray, margins: { left: 8 } }),
+          ...(run.tag
+            ? [text(`v${run.tag}`, { font_size: 11, text_color: COLORS.blue, margins: { left: 8 } })]
+            : []),
+        ]),
             text(run.commitMessage || '—', { margins: { top: 4 } }),
             text(fmtRange(run.startDate, run.endDate), {
               font_size: 11,

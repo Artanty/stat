@@ -1,4 +1,4 @@
-import { Badge, Button, Col, Empty, Input, List, Row, Space, Tag, Timeline, Typography } from 'antd';
+import { Badge, Button, Col, Empty, Input, List, Row, Select, Space, Tag, Timeline, Typography } from 'antd';
 import { EyeInvisibleOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { DeployRun, getDeployRuns } from '../api.service';
@@ -76,6 +76,9 @@ export const DeployTab: React.FC = () => {
   const [project, setProject] = useState<string>(() => localStorage.getItem('deployTabProject') || 'all');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [namespace, setNamespace] = useState<string>(
+    () => localStorage.getItem('deployTabNamespace') || 'all'
+  );
   const [showHidden, setShowHidden] = useState(false);
   const [hidden, setHidden] = useState<string[]>(() => {
     try {
@@ -144,22 +147,30 @@ export const DeployTab: React.FC = () => {
     );
   }, [projects, search, hidden, showHidden]);
 
+  const namespaces = useMemo(
+    () => Array.from(new Set(runs.map((r) => r.namespace))).sort(),
+    [runs]
+  );
+
+  // filter helper: namespace applies everywhere runs are listed/counted
+  const nsOk = (r: DeployRun) => namespace === 'all' || r.namespace === namespace;
+
   // runs of hidden projects stay out of 'all' regardless of the selected project
   const allVisibleCount = useMemo(
-    () => runs.filter((r) => showHidden || !hidden.includes(r.projectId)).length,
-    [runs, hidden, showHidden]
+    () => runs.filter((r) => nsOk(r) && (showHidden || !hidden.includes(r.projectId))).length,
+    [runs, namespace, hidden, showHidden]
   );
 
   const newestVisibleRun = useMemo(
-    () => runs.find((r) => showHidden || !hidden.includes(r.projectId)),
-    [runs, hidden, showHidden]
+    () => runs.find((r) => nsOk(r) && (showHidden || !hidden.includes(r.projectId))),
+    [runs, namespace, hidden, showHidden]
   );
 
   const visibleRuns = useMemo(
     () => runs.filter(
-      (r) => (project === 'all' || r.projectId === project) && (showHidden || !hidden.includes(r.projectId))
+      (r) => nsOk(r) && (project === 'all' || r.projectId === project) && (showHidden || !hidden.includes(r.projectId))
     ),
-    [runs, project, hidden, showHidden]
+    [runs, namespace, project, hidden, showHidden]
   );
 
   // a persisted selection from an older session may not exist in the loaded runs — fall back
@@ -177,6 +188,20 @@ export const DeployTab: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [visibleRuns]);
+
+  // a persisted namespace from an older session may not exist anymore — fall back
+  useEffect(() => {
+    if (runs.length > 0 && namespace !== 'all' && !namespaces.includes(namespace)) {
+      setNamespace('all');
+      localStorage.setItem('deployTabNamespace', 'all');
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [runs]);
+
+  const changeNamespace = (v: string) => {
+    setNamespace(v);
+    localStorage.setItem('deployTabNamespace', v);
+  };
 
   const run = useMemo(() => runs.find((r) => r.workflowRunId === selectedId) ?? null, [runs, selectedId]);
 
@@ -247,7 +272,19 @@ export const DeployTab: React.FC = () => {
         <Col span={7} style={{ height: '100%', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minHeight: 0 }}>
             <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-              <Text type="secondary">{visibleRuns.length} runs</Text>
+              <Space size={8}>
+                <Text type="secondary">{visibleRuns.length} runs</Text>
+                <Select
+                  size="small"
+                  value={namespace}
+                  onChange={changeNamespace}
+                  style={{ minWidth: 90 }}
+                  options={[
+                    { value: 'all', label: 'all ns' },
+                    ...namespaces.map((ns) => ({ value: ns, label: ns })),
+                  ]}
+                />
+              </Space>
               <Button size="small" loading={loading} onClick={() => loadRuns()}>
                 reload
               </Button>

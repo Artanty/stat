@@ -9,7 +9,8 @@ export type RunStatus = 'error' | 'running' | 'master-done' | 'done';
 export const STATUS_META: Record<RunStatus, { badge: 'error' | 'success' | 'processing' | 'warning'; label: string }> = {
   error: { badge: 'error', label: 'error' },
   running: { badge: 'processing', label: 'running' },
-  'master-done': { badge: 'warning', label: 'master done' },
+  // master finished without slave events = still a successful deploy (e.g. master-only run / slave telemetry missing)
+  'master-done': { badge: 'success', label: 'done' },
   done: { badge: 'success', label: 'done' },
 };
 

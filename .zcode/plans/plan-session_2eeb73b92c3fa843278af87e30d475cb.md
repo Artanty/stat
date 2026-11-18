@@ -1,20 +1,10 @@
-Date-display cleanup across web (full deploy tab + /mini) and the SDUI envelope. Per your call: the header row always shows the date once + start time → end time, regardless of whether the run crosses midnight — never a second full date.
+Run the ext against prod Render and capture exactly what the request does (success or explicit error):
 
-## web (`web/src/deployTimeline.tsx` + consumers)
-
-1. Add next to `fmtDate`:
-   - `fmtTime = (s) => new Date(s).toLocaleTimeString()` — time-only.
-   - `fmtRange = (start, end)` — always `` `${fmtDate(start)} → ${fmtTime(end)}` `` (date once from start, then bare times).
-2. Timeline stage label in `buildTimelineItems`'s `push()` (deployTimeline.tsx:67): `fmtDate(time)` → `fmtTime(time)`.
-3. `MiniPage.tsx:131` and `DeployTab.tsx:319` run header: use `fmtRange(run.startDate, run.endDate)`. DeployTab.tsx:294 run-list rows keep `fmtDate` (single date there).
-
-## SDUI (`back/core/miniEnvelope.ts`)
-
-4. Replace ISO `fmtDate` with explicit `dd.mm.yyyy, hh:mm:ss` formatting (Node locale ≠ browser locale); add matching `fmtTime` (`hh:mm:ss`); `fmtRange` = date once + `start → end-time`, same as web.
-5. `timeText()` (stage times) uses `fmtTime`; header row uses `fmtRange`.
-
-## Verify
-
-6. Web: tsc + eyeball /mini and deploy tab on the dev server.
-7. Back: curl `/mini/envelope.json` on :3230 — header shows one date + two times, stages show bare times.
-8. Progress entry in `stat/DECISIONS.md`. No commits/deploys.
+1. Launch Chrome for Testing (fresh profile) with the current `web-ext/dist` (STAT_ORIGIN = https://stat-3lmc.onrender.com), remote debugging on 9222.
+2. Open the side panel, click Stat, and capture:
+   - the source-error row content and the card state (fresh vs cached vs error box),
+   - page console + service-worker console messages (the net bridge logs the failing fetch),
+   - rough timing (Render cold start can hang ~30s before failing — we'll see which failure mode: fast refuse vs long hang).
+3. Also curl `https://stat-3lmc.onrender.com/mini/envelope.json` directly from the shell for a baseline comparison (same machine, no extension), and via the feat thru proxy to confirm prod serves fresh data.
+4. Screenshot the panel for you; report the exact error text + timing.
+5. No code changes; findings into ext DECISIONS.md (and if the direct path fails here too, that's the evidence for switching stat-mini to the feat thru route — I'll propose that as a follow-up, not build it now).

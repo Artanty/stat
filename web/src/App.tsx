@@ -1,10 +1,10 @@
 import { ConfigProvider, theme as antdTheme } from 'antd';
 import React from 'react';
-import { LogsPage } from './components/LogsPage';
-import { DataProvider } from './services/store';
+import { DeployPage } from './components/DeployPage';
+import { MiniPage } from './components/MiniPage';
 import { ThemeProvider, useTheme } from './theme';
 
-const ThemedApp: React.FC = () => {
+const ThemedApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isDark, colors } = useTheme();
 
   return (
@@ -22,12 +22,14 @@ const ThemedApp: React.FC = () => {
     >
       <div
         style={{
-          minHeight: '100vh',
+          height: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
           background: colors.background,
           color: colors.text,
         }}
       >
-        <LogsPage />
+        {children}
       </div>
     </ConfigProvider>
   );
@@ -36,9 +38,19 @@ const ThemedApp: React.FC = () => {
 export const App: React.FC = () => {
   return (
     <ThemeProvider>
-      <DataProvider>
-        <ThemedApp />
-      </DataProvider>
+      <ThemedApp>
+        <DeployPage />
+      </ThemedApp>
+    </ThemeProvider>
+  );
+};
+
+export const MiniApp: React.FC = () => {
+  return (
+    <ThemeProvider>
+      <ThemedApp>
+        <MiniPage />
+      </ThemedApp>
     </ThemeProvider>
   );
 };

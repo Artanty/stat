@@ -6,12 +6,40 @@
     font-style: normal;
   }
 
+html, body, #root {
+    height: 100%;
+}
+
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border-input, #333333) transparent;
+}
+
+/* timeline: no horizontal overflow — wrap/truncate instead of scroll */
+.ant-timeline.ant-timeline-label {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ant-timeline .ant-timeline-item-label {
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}
+
+.ant-timeline .ant-timeline-item-content {
+    min-width: 0;
+    max-width: calc(50% - 22px);
+    word-break: break-word;
+}
+
 #root{
     font-family: "Nunito", sans-serif;
 }
 
 body {
     margin: 0;
+    overflow: hidden;
     background-color: #000;
     font-family: "Nunito", sans-serif;
 }

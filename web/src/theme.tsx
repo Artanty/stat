@@ -65,6 +65,8 @@ export const ThemeProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   useEffect(() => {
     const isDark = mode === 'dark';
     document.body.style.backgroundColor = isDark ? darkColors.background : lightColors.background;
+    // expose theme tokens to plain CSS (scrollbars etc.)
+    document.documentElement.style.setProperty('--border-input', isDark ? darkColors.border : lightColors.border);
   }, [mode]);
 
   const setMode = (m: ThemeMode) => {

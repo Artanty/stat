@@ -1,5 +1,34 @@
 # DECISIONS.md
 
+## Task: date display cleanup (web + SDUI)
+
+### Plan (2026-11-18)
+- Header datetime row: date shown ONCE from start, then bare times: `16.11.2026, 17:52:21 → 17:53:41` — even across midnight, no second full date (user: "its obvious"). New `fmtTime` + `fmtRange` in deployTimeline.tsx, used by MiniPage + DeployTab run headers.
+- Timeline stage labels: time only.
+- SDUI miniEnvelope: explicit `dd.mm.yyyy, hh:mm:ss` (Node locale ≠ browser), same fmtRange + time-only stages.
+
+### Progress (2026-11-18, 1)
+- DONE, verified. NOT deployed.
+- web: deployTimeline.tsx adds `fmtTime` (toLocaleTimeString) + `fmtRange` (`fmtDate(start) → fmtTime(end)`, date once — no same-day check, cross-midnight also collapses); timeline stage labels (push()) now fmtTime. MiniPage + DeployTab run headers use fmtRange; DeployTab run-list rows keep fmtDate.
+- back/miniEnvelope.ts: explicit `dd.mm.yyyy, hh:mm:ss` fmtDate + hh:mm:ss fmtTime + same fmtRange; timeText → fmtTime. (Node toLocaleString would be en-US.)
+- Verified: back tsc clean; live envelope header `18.11.2026, 10:44:31 → 10:46:12` with bare-time stages. web tsc: only pre-existing rc-picker node_modules typings error. Parcel served a stale bundle until cache cleared (recurring gotcha) — after rm .parcel-cache/dist + restart, fresh bundle contains the new helpers (dev port this run: 49961).
+- Follow-up: SDUI header row now leads with the project name (no selector in the envelope to identify the run): `[feat@github] [done] [v0.0.37.0.0.0] [back]` — project in bright text, status keeps its color. Verified live.
+
+## Task: /mini → SDUI envelope for ext host
+
+### Plan (2026-11-17)
+- Goal: ship the /mini deploy widget (latest-run-only, no selector/last/reload) into the ext Chrome-extension host as a DivKit envelope (know: sdui-remote-envelope.md).
+- Data baked in server-side (DivKit = pure data, no JS): stat back adds `GET /mini/envelope.json` (no-cache), built by pure `back/core/miniEnvelope.ts` porting web/src/deployTimeline.tsx logic (runStatus, chips, hosting). Fallback card "no runs" when empty; errors via appendErrorLog.
+- ext side: `STAT_ORIGIN` env (default https://stat-3lmc.onrender.com) → manifest `__STAT_ORIGIN__` host_permissions token + `src/builtin.ts` nav remote `stat-mini` (version-display v5 pattern: runtime fetch + offline cache). Freshness = panel reopen; cold Render ~30s caveat noted, retry deferred.
+- No `-d` commits unless user asks.
+
+### Progress (2026-11-17, 13)
+- DONE, verified end-to-end locally. NOT deployed.
+- back: extracted shared query `back/core/deployRuns.ts` (types + parseSteps + fetchDeployRuns); `/get-deploy-runs` now calls it (no behavior change). New `back/core/miniEnvelope.ts` — pure buildMiniEnvelope(run) emitting the DivKit envelope (schema v2: `items`, no variables/actions; colors ported from STATUS_META: green done / red error / yellow master-done / gray running / blue tag+slave). New route `GET /mini/envelope.json` (no-cache; cors global).
+- GOTCHA: versionInterceptor appended `version` to EVERY res.json — broke envelope validation (`/version is not an allowed property`). Fixed: middleware skips `req.path === '/mini/envelope.json'` (pure passthrough payload).
+- Verified: tsc clean; live curl on dev back :3230 returns envelope; ext's own validateEnvelope → ok; loaded in Chrome for Testing via CDP → nav shows "Stat", card mounts with full latest-run timeline (screenshot web-ext/.e2e/stat-mini.png). Visual pass: layout readable; minor aesthetics only (no timeline rail between dots, chips are colored text tokens).
+- ext (repo ext/): `STAT_ORIGIN` env (example default prod Render; local .env currently `http://127.0.0.1:3230` for e2e — flip to prod when trying for real), `__STAT_ORIGIN__/*` in manifest host_permissions (build.mjs define + token replace), `src/builtin.ts` nav remote `stat-mini` (GET allowlist on STAT_ORIGIN). ext typecheck + 21 tests + build green; stock e2e's feat badge / notes-submit checks fail only for env reasons (feat.twc1.net fetch + 8787 stub not running), unrelated.
+
 ## Note (2026-11-15) - Hosting update: vercel out, Timeweb in
 - stat@web is now deployed at **https://stat.twc1.net/** (Timeweb). Vercel is hard to use now — treat all vercel references for stat as historical: the two-brothers slave web on two-brothers-navy.vercel.app is deprecated.
 - stat@back remains on Render free tier (stat-3lmc.onrender.com) — still sleeps; wake support moved to the shared feat project (feat wake-up v3, render way, 2026-11-15).
@@ -168,3 +197,78 @@
 - feat-gate.ts gatedFetch: THRU_URL branch (thruUrl()/thruHostReady() warm poll /healthz 1s/60s — noy is a cold TW-VH Passenger; then fetch `${THRU_URL}/thru?target=…&method=&body=`, thru mirrors the upstream Response). Direct+gate branch untouched. web/.env += THRU_URL= placeholder. Build OK, type-clean.
 - E2E verified locally: noy :3299 (FEAT_THRU=true) + back :3230 + web dev THRU_URL=http://localhost:3299 — stat v2 tab renders live project data; noy log shows the app's real /thru POSTs (get-projects-status) returning 200. Wake-up/features untouched per user.
 - Deploy: stat `-d` with THRU_URL=https://noy.twc1.net in the web env (after noy deploys with FEAT_THRU=true). Empty THRU_URL = old direct+gate behavior.
+
+## Plan (2026-11-17) - Deploy tab 3rd view: 'tree' (Diablo-2 skill tree)
+- Why: user wants a game-like visualization of the deploy path — master action picks a branch (one of BRANCH_CHIPS), slave action follows it, and each branch ends in a hosting leaf (badge).
+- Plan:
+  - New `web/src/components/DeployTree.tsx`: vertical tree. Trunk: `tag push` -> `serf master` (chips start/checkout/tech-stack/safe/env-created). Fork into 5 branch columns (vercel-json, render-yaml, ftp-workflow, vh-workflow, vds-workflow). Workflow branches continue through a `slave action` node (chips checkout/build/deploy from slaveSteps) into the hosting leaf; platform branches (vercel-json, render-yaml) go straight to the hosting leaf (no slave — deploys on push). Hosting leaves: vercel / render / ftp / timeweb-vh / vds with distinct colors.
+  - Lit/dim/error states as in schema view: taken path glows green (connectors too), untaken dim, failures red. Hosting leaf lit when SLAVE_END (workflow) or MASTER_END (platform).
+  - `DeployTab.tsx`: Segmented gains 'tree' option (persisted in deployTabView), passes run/masterSteps/slaveSteps/slaveWorkflowGenerated to DeployTree.
+
+### Progress (2026-11-17) - tree view done, verified live
+- Created `web/src/components/DeployTree.tsx` (trunk: tag push -> serf master chips; fork rail into 5 branch columns; workflow branches go slave action (chip chain from slaveSteps) -> hosting leaf; platform branches go straight to hosting leaf). Lit/dim/error states + glowing green connectors; hosting leaves: vercel / render / ftp / timeweb vh / vds with per-host colors.
+- `DeployTab.tsx`: Segmented + 'tree' option (persisted), renders `<DeployTree run masterSteps slaveSteps/>`.
+- Build + tsc clean. Verified live in IAB: dev web (BACKEND_URL -> render, THRU_URL=https://noy.twc1.net temporarily in web/.env — restored to localhost:3230 after test; Parcel .env changes need `npm run dev`'s delete-parcel-cache or the stale bundle keeps serving) — 21 runs loaded via noy thru, vh-workflow run lights the full path down to the glowing 'timeweb vh' leaf.
+- Not deployed yet: needs a stat `-d` to ship on stat.twc1.net.
+
+### Progress (2026-11-17, 2) - tree view redesign (game skill-tree look)
+- User found v1 (DOM boxes + thin lines) ugly. Researched skill/tech-tree UI patterns (Game UI Database, D2/D4/PoE/Civ references): the look = compact orb nodes + small labels, thick glowing connectors as the hero, dark radial backdrop, state via glow not opacity.
+- Rewrote `DeployTree.tsx` as a single SVG: tag push orb -> serf master tile (step dots) -> diagonal fan-out fork to 5 branch orbs -> workflow branches through slave action tiles -> hosting leaf orbs (host-colored rings + glow). Gold (#faad14) = taken path (D2 vibe, distinct from schema view's green), red = failed, dim = not taken. Legend inside the SVG.
+- Iterated with visual-judge passes: raised dim opacity (was unreadable), padding for edge clipping, uniform orb-label gaps, bigger/bolder lit step dots, aligned leaf row. Final pass: no overlaps/clipping, lit path reads clearly.
+- Verified live in IAB with 21 real runs (vh-workflow run lights the whole gold path to the glowing 'timeweb vh' leaf). tsc clean. Not deployed — needs stat `-d`.
+
+### Progress (2026-11-17, 3) - tree view restyled modern (user: "no game ui")
+- User rejected the gold/glow game look; wants modern UI. Restyled DeployTree SVG flat & minimal: accent blue #1677ff (matches app) for the taken path, thin 1.25-2px connectors, small circular nodes with labels, flat stage cards with step dot-rows, hosting leaves as flat pill badges (status dot + host-colored label), no glow/vignette. Legend flattened.
+- Visual-judge pass: no overlaps/clipping, consistent spacing, active path reads clearly, reads as a modern pipeline diagram. Live in dev at :1234 (tab=deploy, view=tree). tsc clean. Not deployed — needs stat `-d`.
+
+### Progress (2026-11-17, 4) - tree view v3: grid of branch cards (user direction)
+- User: use ng-zorro-style grid cards — 5 branches as a row of cards, with timeline + tags like the sequence tab. (App is React, so antd equivalents.)
+- Rewrote DeployTree.tsx as DOM layout: 'serf master' bar on top (step Tags with arrows) -> caption -> Row of 5 antd Cards (Col flex=1). Workflow cards: antd Timeline (checkout + slave steps + live) with DoneTags; platform cards: push -> live + 'platform deploys on push' note. Hosting = colored antd Tag (default/blue/orange/green/purple). Taken card: blue border + inset ring + blue title; dim cards 0.45 opacity; red for failures.
+- Judge-pass fixes: platform caption wraps (render-yaml card was stretching), dim opacity lowered so the taken branch pops. Final visual pass clean. Live in dev (:1234, tab=deploy, view=tree); tsc clean. Not deployed — needs stat `-d`.
+
+### Progress (2026-11-17, 5) - sequence view: full schema-like tag rows
+- User asked to add more tags to the sequence view like the schema view. DeployTab timelineItems now render the full chip sets instead of only happened steps:
+  - master steps item: MASTER_CHIPS (start/checkout/tech-stack/safe/env-created) + dashed divider + BRANCH_CHIPS (vercel-json/render-yaml/ftp-workflow/vh-workflow/vds-workflow) + push tag — green when taken, dim default otherwise.
+  - slave steps item: checkout + actual slave chain chips, same lit/dim treatment.
+  - new final 'hosting:' timeline item with the branch's hosting tag (HOSTING_BY_BRANCH map, colors as in tree view); red on failure.
+- Removed old stepsTags helper. tsc + build clean; verified live in IAB (vh-workflow run shows green vh-workflow branch tag + 'hosting: timeweb vh'). Not deployed — needs stat `-d`.
+
+## Plan (2026-11-17, 6) - Strip stat to deploy-tab only + namespace badges
+- User: remove everything, keep only deploy tab (web + backend); add namespace badge(s) to left project list (like the run card Tag).
+- Web: new DeployPage (FeatureSlots + DeployTab, no antd Tabs); App drops DataProvider; delete StatPanel, StatV2Tab, LogsTab, ListTab, GridLayout, LineChart, DateSelect, FilterPanel, CopyButton, ThemeToggle, GetUpdates (+ /get-updates route); api.service.ts trimmed to getDeployRuns only; remove /v1 render-logs proxy if unused.
+- Back: keep /add-event (serf workflows POST deploy telemetry to it!), /get-deploy-runs, error log, startup checks; remove /get-last-events, /get-events-list, /get-projects-status, /get-projects, /get-project-entries, /get-updates + helpers (sendRuntimeEventToStat, shouldRunStat, dayjs/retry imports).
+- DeployTab: project rows show unique namespace Tag(s) from that project's runs (like the run card's <Tag>{namespace}</Tag>).
+
+### Progress (2026-11-17, 6) - stat stripped to deploy-only + namespace badges
+- Web: DeployPage.tsx replaces LogsPage (FeatureSlots + DeployTab, no Tabs bar); App drops DataProvider; index.js loses /get-updates route + grid css; api.service.ts trimmed to getDeployRuns + types; deleted StatPanel/StatV2Tab/LogsTab/ListTab/GridLayout/LineChart/DateSelect/FilterPanel/CopyButton/ThemeToggle/LogsPage/GetUpdates/models/helpers/d.ts/services/store.js + .proxyrc.json (render logs proxy).
+- Back: app.ts keeps /add-event (serf telemetry ingestion!) + /get-deploy-runs + error log + startup; removed /get-last-events, /get-events-list, /get-projects-status, /get-projects, /get-project-entries, /get-updates + runtime-stat helpers; dayjs/retry imports dropped. tsc clean.
+- DeployTab: projects useMemo collects unique namespaces; ProjectRow renders small namespace Tags (run-card style) beside the project name.
+- Verified live in IAB: app boots straight into deploy view, 22 runs via noy thru, project rows show back/web namespace badges. NOT deployed — needs stat `-d`.
+
+### Progress (2026-11-17, 7) - schema & tree views removed
+- User: remove schema and tree views. DeployTab: deleted Segmented + view state (deployTabView), SchemaNode/Chip/Arrow components, schema JSX and tree branch; only the sequence Timeline remains (with its full tag rows). Deleted web/src/components/DeployTree.tsx.
+- tsc + build clean; verified live (no segmented control, timeline renders, runs load). NOT deployed — needs stat `-d`.
+
+### Progress (2026-11-17, 8) - page scroll removed, per-column scrolls
+- User: no whole-page scroll; independent scrolls for projects list, run list, timeline (when needed).
+- style.css: html/body/#root height 100%, body overflow hidden. App wrapper: height 100vh flex column. DeployPage: flex 1 minHeight 0 flex column. DeployTab root + Row flex 1 minHeight 0; each Col = flex column minHeight 0; the three list regions (projects, runs, timeline) are flex-1 minHeight-0 overflowY auto (antd Space wrappers replaced with plain flex divs — Space items break flex children).
+- Verified live: body no longer scrolls; run list scrolls internally (2046px content in 656px); projects/timeline scroll only when content exceeds. Bonus: bundle dropped 4.17MB -> 1.69MB (charts finally tree-shaken after tab removals). NOT deployed — needs stat `-d`.
+
+### Progress (2026-11-17, 9) - thin themed scrollbars
+- style.css: global `* { scrollbar-width: thin; scrollbar-color: var(--border-input) transparent; }`. theme.tsx ThemeProvider effect sets `--border-input` on :root from theme tokens (#333 dark / #d9d9d9 light), so scrollbars follow the theme; fallback #333.
+- Verified live (parcel cache needed clearing again — delete-parcel-cache before dev server restart): var resolves, scrollbar-width computed 'thin'. NOT deployed — needs stat `-d`.
+
+### Progress (2026-11-17, 10) - no horizontal scroll in timeline block
+- Timeline scroll container: overflowX hidden + word-break; style.css timeline rules — .ant-timeline-label width 100%, item-label nowrap+ellipsis, item-content min-width 0 / max-width calc(50% - 22px) / break-word so tag rows wrap instead of overflowing.
+- Verified live: container no longer reports horizontal overflow; tag rows wrap (branch tags onto two lines), nothing clipped. NOT deployed — needs stat `-d`.
+
+### Progress (2026-11-17, 11) - /mini compact deploy page (route only)
+- New route /mini (index.js MiniApp; no link/tab anywhere). MiniPage.tsx: 490px column, block under block — (1) project Select (options with run counts, defaults to first), (2) last-run info (status badge, version tag, namespace tag, commit message, start→end datetime; runs come newest-first so last run = first match), (3) full timeline block (no header, own 70vh vertical scroll, same wrap/truncate rules).
+- Extracted the shared sequence-timeline builder from DeployTab into web/src/deployTimeline.tsx (STATUS_META, runStatus, fmtDate, chips, HOSTING_BY_BRANCH, buildTimelineItems) — DeployTab now imports it; both pages render identical timelines.
+- Verified live at localhost:1234/mini (project select + feat@github last run + timeline with wrapped tag rows). tsc clean. NOT deployed — needs stat `-d`.
+
+### Progress (2026-11-17, 12) - /mini: 'last' toggle + borderless reload
+- Project block header now: 'project' label left; right side = small Switch 'last' + borderless text-type ReloadOutlined icon button.
+- last OFF: select enabled, reload button active — click re-fetches runs (whole block info).
+- last ON: select disabled and pinned to the project of the newest run (runs arrive newest-first, so runs[0].projectId); everything auto-reloads every 60s (setInterval, cleaned up on toggle off); reload button disabled.
+- Verified live in IAB both states. tsc clean. NOT deployed — needs stat `-d`.

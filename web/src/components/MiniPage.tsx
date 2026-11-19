@@ -1,4 +1,4 @@
-import { Badge, Button, Empty, Select, Space, Switch, Tag, Timeline, Typography } from 'antd';
+import { Badge, Button, Empty, Select, Space, Switch, Tag, Timeline, Tooltip, Typography } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { DeployRun, getDeployRuns } from '../api.service';
@@ -125,11 +125,21 @@ export const MiniPage: React.FC = () => {
                 <Badge status={STATUS_META[runStatus(run)].badge} text={STATUS_META[runStatus(run)].label} />
                 {run.tag && <Tag color="blue">v{run.tag}</Tag>}
                 <Tag>{run.namespace}</Tag>
+                {run.retriggered && (
+                  <Tooltip title={run.retriggeredAt ?? undefined}>
+                    <Tag color="purple">retriggered</Tag>
+                  </Tooltip>
+                )}
               </Space>
               <Text ellipsis style={{ width: '100%' }}>{run.commitMessage || '—'}</Text>
               <Text type="secondary" style={{ fontSize: 12 }}>
                 {fmtRange(run.startDate, run.endDate)}
               </Text>
+              {run.retriggeredAt && (
+                <Text type="secondary" style={{ fontSize: 12 }}>
+                  retriggered {run.retriggeredAt}
+                </Text>
+              )}
             </Space>
           </div>
         )}

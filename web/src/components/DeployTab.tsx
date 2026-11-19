@@ -1,4 +1,4 @@
-import { Badge, Button, Col, Empty, Input, List, Row, Select, Space, Tag, Timeline, Typography } from 'antd';
+import { Badge, Button, Col, Empty, Input, List, Row, Select, Space, Tag, Timeline, Tooltip, Typography } from 'antd';
 import { EyeInvisibleOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { DeployRun, getDeployRuns } from '../api.service';
@@ -316,6 +316,11 @@ export const DeployTab: React.FC = () => {
                       <Text strong>{r.projectId}</Text>
                       <Tag>{r.namespace}</Tag>
                       {r.tag && <Text type="secondary">v{r.tag}</Text>}
+                      {r.retriggered && (
+                        <Tooltip title={`retriggered ${r.retriggeredAt ? fmtDate(r.retriggeredAt) : ''}`}>
+                          <Tag color="purple">retriggered</Tag>
+                        </Tooltip>
+                      )}
                     </Space>
                     <div
                       style={{

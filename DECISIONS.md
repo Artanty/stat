@@ -1,5 +1,37 @@
 # DECISIONS.md
 
+## Task: RETRIGGER visibility — rerun marker event + last-activity run ordering
+
+### Plan (2026-11-20)
+- Manual reruns via flow /retrigger are invisible in stat: same workflowRunId → same run
+  bucket, startDate keeps the original attempt's date, sort is startDate desc → run
+  stays in old position (web list + mini sdui runs[0]).
+- Design: flow posts a stage='RETRIGGER' /add-event with the run's workflowRunId (run
+  metadata, NOT a workflow stage). stat deployRuns.ts: keep it out of the stage map
+  (not in DEPLOY_STAGES), set run.retriggered/retriggeredAt (latest date wins), sort
+  runs by LAST event eventDate desc (last activity) instead of startDate — one sort
+  change fixes web list and mini. DTO + web DeployRun type + badge on run card header
+  (DeployTab ~314) + mini chip next to v{tag} with retrigger time (miniEnvelope +
+  MiniPage twin). No storage/schema change; ext untouched.
+- flow change logged here too (flow repo has no DECISIONS.md): rerun.ts posts the event
+  fire-and-forget after successful reReWorkflow, modeled on sendRuntimeErrorToStat.
+
+### Result (2026-11-20)
+- flow/back: rerun.ts posts the RETRIGGER stat event (axios fire-and-forget, .catch
+  logged) after successful reReWorkflow; StatPayload gained optional workflowRunId.
+  tsc --noEmit clean (no test runner wired in flow back).
+- stat/back deployRuns.ts: DeployRunDto + retriggered/retriggeredAt (latest RETRIGGER
+  event wins, kept out of stages), runs sort switched startDate desc → endDate (last
+  activity) desc. Verified with fake pool via tsx: old run + RETRIGGER + rerun events
+  sorts first, flag set, stage map/tag intact. Typecheck clean.
+- stat/web: DeployRun type extended; DeployTab run card + MiniPage get a purple
+  "retriggered" Tag (Tooltip with retriggeredAt; MiniPage also a retriggered-at line).
+  tsc: only a pre-existing DatePicker defaultValue error remains (unrelated files).
+- mini sdui miniEnvelope.ts: yellow "↻ retriggered" header item + "retriggered <at>"
+  line; smoke-built envelope via tsx OK. ext untouched.
+- NOT deployed — flow + stat (back/web) need deploys (user's call). Effect live only
+  after BOTH: flow must post the event, stat must interpret it.
+
 ## Task: SDUI polish — theme-aware colors, status simplification, header row layout
 
 ### Plan (2026-11-18, 2)

@@ -36,6 +36,8 @@ export interface DeployRunDto {
   startDate: string;
   endDate: string;
   hasError: boolean;
+  retriggered: boolean;
+  retriggeredAt: string | null;
   stages: Partial<Record<DeployStage, DeployEventDto>>;
   events: DeployEventDto[];
 }
@@ -122,6 +124,10 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
       }
       const first = events[0];
       const last = events[events.length - 1];
+      // RETRIGGER is run-level metadata posted by flow's /retrigger (NOT a workflow
+      // stage): latest occurrence wins
+      const retriggerEvts = events.filter((e) => e.stage === 'RETRIGGER');
+      const retriggeredAt = retriggerEvts.length ? retriggerEvts[retriggerEvts.length - 1].eventDate : null;
       return {
         workflowRunId: runId,
         projectId: first.projectId,
@@ -131,10 +137,15 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
         startDate: first.eventDate,
         endDate: last.eventDate,
         hasError: events.some((e) => e.isError === 1),
+        retriggered: retriggeredAt !== null,
+        retriggeredAt,
         stages,
         events,
       };
     })
-    .sort((a, b) => (a.startDate < b.startDate ? 1 : -1))
+    // sort by last activity (endDate), not startDate — a re-run adds events to the SAME
+    // run id (startDate stays the original attempt's), but its rerun events make it the
+    // most recent activity, so it must surface as the latest run
+    .sort((a, b) => (a.endDate < b.endDate ? 1 : -1))
     .slice(0, limit || 50);
 }

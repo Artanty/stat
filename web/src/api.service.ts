@@ -33,6 +33,8 @@ export interface DeployRun {
   startDate: string;
   endDate: string;
   hasError: boolean;
+  retriggered: boolean;
+  retriggeredAt: string | null;
   stages: Partial<Record<DeployStage, DeployEvent>>;
   events: DeployEvent[];
 }

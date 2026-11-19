@@ -221,6 +221,9 @@ export function buildMiniEnvelope(run: DeployRunDto | null): Record<string, unkn
           ...(run.tag
             ? [text(`v${run.tag}`, { font_size: 11, text_color: COLORS.blue, margins: { left: 8 } })]
             : []),
+          ...(run.retriggered
+            ? [text('↻ retriggered', { font_size: 11, text_color: COLORS.yellow, margins: { left: 8 } })]
+            : []),
         ]),
             text(run.commitMessage || '—', { margins: { top: 4 } }),
             text(fmtRange(run.startDate, run.endDate), {
@@ -228,6 +231,9 @@ export function buildMiniEnvelope(run: DeployRunDto | null): Record<string, unkn
               text_color: COLORS.gray,
               margins: { top: 2 },
             }),
+            ...(run.retriggeredAt
+              ? [text(`retriggered ${run.retriggeredAt}`, { font_size: 11, text_color: COLORS.gray, margins: { top: 2 } })]
+              : []),
           ],
           { margins: { top: 4 } }
         ),

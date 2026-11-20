@@ -1,5 +1,37 @@
 # DECISIONS.md
 
+## Task: slot-based feature mounting (2026-11-20, 3)
+
+### Result
+- Per user direction ("project must not know the feature"), stat@back migrated to the feat
+  `backend-slots` loader (spec: feat/back/spec/backend-slots.md): vendored
+  `features/loader.js`(+.d.ts); app.ts now imports ONLY the loader and calls
+  `await mountBackendFeatures(app)` — the attachReq import and feature comment are gone.
+  Config moved to env: `FEAT_REQ_MOUNT=/req` (toggle+placement), recipes unchanged.
+  `.env.example` updated. tsc clean; E2E via the real loader verified (req mounted,
+  token injected, 200).
+
+## Task: retrigger button via feat `req` (2026-11-20, 2)
+
+### Result
+- back: vendored `feat/back/features/req/v1/js-node/req.js`(+.d.ts) → `back/features/req/`
+  (`// VENDORED` header); mounted at `GET|POST /req/:name` (authless,
+  consistent with the rest of stat back; now via the backend-slots loader, see entry 3).
+  npm run typecheck clean. Recipe envs in new
+  `back/.env.example` (FEAT_REQ_RETRIGGER_* → flow /retrigger; `{{project}}` param —
+  unlike safe, project comes from the CALLER so any project can be retriggered from the
+  runs UI).
+- web: `retriggerRun()` in api.service.ts (plain fetch to BACKEND_URL/req/retrigger —
+  stat back has no auth) + ↻ Button (ReloadOutlined, Tooltip) in DeployTab run-detail
+  header next to `run <id>`; loading state, antd message success/error, loadRuns()
+  refresh after. tsc clean (only pre-existing DatePicker error).
+- E2E (local express + mock flow, feat side): 200 with Bearer injected + body
+  substituted; unknown recipe 404. Full loop: button → stat back recipe → flow
+  /retrigger → GitHub rerun + RETRIGGER stat event → run card moves to top with the
+  retriggered badge (shipped earlier today).
+- NOT deployed — stat back+web `-d` commits are the user's call; FEAT_REQ_RETRIGGER_*
+  rows must be added to the deployed .env.
+
 ## Task: RETRIGGER visibility — rerun marker event + last-activity run ordering
 
 ### Plan (2026-11-20)

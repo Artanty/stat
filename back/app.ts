@@ -12,6 +12,7 @@ import getVersion from './core/get_version.js';
 import { fetchDeployRuns, type GetDeployRunsQuery as GetDeployRunsBody } from './core/deployRuns.js';
 import { buildMiniEnvelope } from './core/miniEnvelope.js';
 import versionInterceptor from './middleware/versionInterceptor.js';
+import { mountBackendFeatures } from './features/loader.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ERROR_LOG_PATH = path.join(__dirname, 'storage', 'error.log');
@@ -32,6 +33,12 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 app.use(versionInterceptor);
+
+// feat backend-slots (spec: feat/back/spec/backend-slots.md): mount whatever the deploy
+// config says — env rows FEAT_<ID>_MOUNT=<path> decide which vendored features/ modules
+// are attached (e.g. FEAT_REQ_MOUNT=/req + FEAT_REQ_<NAME>_* recipe rows). The app knows
+// only this slot call, never a feature.
+await mountBackendFeatures(app);
 
 interface AddEventBody {
   projectId?: string;

@@ -9,6 +9,21 @@ export interface GetDeployRunsRequest {
   limit?: number;
 }
 
+// feat req recipe on stat back (spec: feat/back/spec/req.md): retrigger a project's
+// last serf deploy run via flow /retrigger — token/URL live in stat back envs only.
+// Response is flow's own payload mirrored through stat back ({project, run, rerun}).
+export const retriggerRun = async (project: string): Promise<any> => {
+  const response = await fetch(`${API_URL}/req/retrigger`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ project }),
+  });
+  if (!response.ok) {
+    throw new Error((await response.json().catch(() => ({}))).error || `retrigger failed (${response.status})`);
+  }
+  return response.json();
+};
+
 export interface DeployEvent {
   id: number;
   projectId: string;

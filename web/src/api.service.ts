@@ -24,6 +24,16 @@ export interface DeployEvent {
 
 export type DeployStage = 'MASTER_START' | 'MASTER_END' | 'MASTER_ERROR' | 'SLAVE_START' | 'SLAVE_END' | 'SLAVE_ERROR'
 
+// one execution attempt of a run — a retriggered run re-runs the whole workflow
+// under the SAME workflowRunId; attempts are ordered oldest → newest
+export interface DeployAttempt {
+  startDate: string;
+  endDate: string;
+  hasError: boolean;
+  stages: Partial<Record<DeployStage, DeployEvent>>;
+  events: DeployEvent[];
+}
+
 export interface DeployRun {
   workflowRunId: string;
   projectId: string;
@@ -37,6 +47,7 @@ export interface DeployRun {
   retriggeredAt: string | null;
   stages: Partial<Record<DeployStage, DeployEvent>>;
   events: DeployEvent[];
+  attempts: DeployAttempt[];
 }
 
 export const getDeployRuns = async (payload?: GetDeployRunsRequest): Promise<DeployRun[]> => {

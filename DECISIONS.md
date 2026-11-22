@@ -1,5 +1,42 @@
 # DECISIONS.md
 
+## Task: attempt pagination for retriggered runs (2026-11-23)
+
+### Plan (2026-11-23)
+- Why: a rerun keeps the same workflowRunId, and fetchDeployRuns takes the FIRST
+  occurrence of each stage — so the timeline/badges show the ORIGINAL attempt even
+  after a retrigger (user sees the old run's timeline behind the purple badge).
+- Back deployRuns.ts: split each run's chronological events into attempts (a new
+  attempt starts at a MASTER_START when the current attempt already has one;
+  RETRIGGER markers fall between attempts and stay metadata). Per attempt:
+  {startDate, endDate, hasError, stages, events}. Run-level stages/startDate/
+  hasError now reflect the LATEST attempt (current state); run endDate keeps the
+  last activity (sort unchanged). New `attempts` array on DeployRunDto, oldest →
+  newest.
+- Web: DeployRun += attempts; DeployTab run-detail gains an attempt switcher above
+  the timeline (only when attempts.length > 1): `< 1 2 3 >` small buttons, default
+  = newest attempt, resets when the selected run changes; timeline + master/slave
+  steps come from the picked attempt's stages.
+- mini envelope / MiniPage: no pagination (single latest run view); they improve
+  automatically since run.stages now reflect the newest attempt.
+
+### Progress (2026-11-23)
+- DONE, verified with fake pool (rerun + RETRIGGER marker): 2 attempts split
+  correctly (attempt 1 err / attempt 2 ok), run-level fields reflect the latest
+  attempt (hasError=false, startDate=11:01, SLAVE_END from attempt 2), retriggered
+  still true. back tsc clean; web tsc only pre-existing rc-picker error; parcel
+  build OK.
+- Web: DeployAttempt type; DeployTab attempt state (null = follow newest, reset on
+  selectedId change) + `< 1 2 3 >` button row above the timeline (attempt counter,
+  header range shows the picked attempt); buildTimelineItems now takes a stages map
+  (DeployTab passes attempt.stages, MiniPage passes run.stages).
+- NOT deployed — needs stat -d (back+web together; web alone would break on
+  missing attempts field, but the web fallback pseudo-attempt guards it anyway).
+- Add-on (same day): 'master start' timeline item carries a `serf actions ↗` link
+  (https://github.com/Artanty/serf/actions, target _blank) — the master action
+  lives in the serf repo; event rows carry no repo to derive it from. tsc + build
+  clean. NOT deployed.
+
 ## Task: slot-based feature mounting (2026-11-20, 3)
 
 ### Result
@@ -446,3 +483,8 @@
   the thru transport lives in the feature. parcel build clean. Needs feat -d first
   (redeploy v2 must exist on the feat host), then stat -d; until then the slot is
   silently dark.
+- redeploy stale-project bug (2026-11-23, 17): clicking after switching run cards sent
+  the PREVIOUS run's project — v2 read attrs once at connect; React updates attrs on
+  the same element. Fix lives in feat redeploy v3 (click-time attr() reads); stat
+  feat.ts pins v3 (string-only change, no stat deploy needed — the slot loads from the
+  feat host at runtime; needs feat -d).

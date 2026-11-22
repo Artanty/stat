@@ -27,6 +27,16 @@ export interface DeployEventDto {
   commitMessage: string | null;
 }
 
+// one execution attempt of a run — a retriggered run re-runs the whole workflow
+// under the SAME workflowRunId, so every MASTER_START after the first opens a new attempt
+export interface DeployAttemptDto {
+  startDate: string;
+  endDate: string;
+  hasError: boolean;
+  stages: Partial<Record<DeployStage, DeployEventDto>>;
+  events: DeployEventDto[];
+}
+
 export interface DeployRunDto {
   workflowRunId: string;
   projectId: string;
@@ -40,6 +50,7 @@ export interface DeployRunDto {
   retriggeredAt: string | null;
   stages: Partial<Record<DeployStage, DeployEventDto>>;
   events: DeployEventDto[];
+  attempts: DeployAttemptDto[];
 }
 
 export interface GetDeployRunsQuery {
@@ -115,15 +126,30 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
 
   return [...byRun.entries()]
     .map(([runId, events]) => {
-      const stages: DeployRunDto['stages'] = {};
+      // split chronological events into attempts: a MASTER_START opens a new attempt
+      // only when the current one already has one (the first event starts attempt 1);
+      // RETRIGGER markers land between attempts and are run-level metadata only
+      const attempts: DeployAttemptDto[] = [];
+      let stages: DeployRunDto['stages'] = {};
       for (const e of events) {
+        if (attempts.length === 0 || (e.stage === 'MASTER_START' && stages.MASTER_START)) {
+          stages = {};
+          attempts.push({ startDate: e.eventDate, endDate: e.eventDate, hasError: false, stages, events: [] });
+        }
         if ((DEPLOY_STAGES as readonly string[]).includes(e.stage)) {
           const stage = e.stage as DeployStage;
           if (!stages[stage]) stages[stage] = e;
         }
+        const attempt = attempts[attempts.length - 1];
+        attempt.events.push(e);
+        attempt.hasError = attempt.hasError || e.isError === 1;
+        attempt.endDate = e.eventDate;
       }
       const first = events[0];
       const last = events[events.length - 1];
+      // run-level fields reflect the LATEST attempt (current state); endDate keeps
+      // the last activity for the ordering
+      const latest = attempts[attempts.length - 1];
       // RETRIGGER is run-level metadata posted by flow's /retrigger (NOT a workflow
       // stage): latest occurrence wins
       const retriggerEvts = events.filter((e) => e.stage === 'RETRIGGER');
@@ -134,13 +160,14 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
         namespace: first.namespace,
         commitMessage: events.map((e) => e.commitMessage).find((v) => v) || null,
         tag: events.map((e) => e.eventData).find((v) => v) || '',
-        startDate: first.eventDate,
+        startDate: latest.startDate,
         endDate: last.eventDate,
-        hasError: events.some((e) => e.isError === 1),
+        hasError: latest.hasError,
         retriggered: retriggeredAt !== null,
         retriggeredAt,
-        stages,
+        stages: latest.stages,
         events,
+        attempts,
       };
     })
     // sort by last activity (endDate), not startDate — a re-run adds events to the SAME

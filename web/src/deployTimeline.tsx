@@ -1,6 +1,6 @@
 import { Space, Tag, Typography } from 'antd';
 import React from 'react';
-import { DeployRun } from './api.service';
+import { DeployEvent, DeployRun, DeployStage } from './api.service';
 
 const { Text } = Typography;
 
@@ -55,8 +55,9 @@ export const schemaChips = (steps: string[], chips: string[], lit: (c: string) =
   </Space>
 );
 
+// stages of ONE attempt (not the whole merged run) — pass run.stages or attempt.stages
 export const buildTimelineItems = (
-  run: DeployRun,
+  stages: Partial<Record<DeployStage, DeployEvent>>,
   masterSteps: string[],
   slaveSteps: string[],
   borderColor: string
@@ -84,7 +85,12 @@ export const buildTimelineItems = (
 
   const slaveWorkflowGenerated = SLAVE_WORKFLOW_MARKS.some((m) => masterSteps.includes(m));
 
-  push('master-start', 'green', 'master start', run.stages.MASTER_START?.eventDate);
+  // master action lives in the serf repo — link straight to its Actions page
+  push('master-start', 'green', 'master start', stages.MASTER_START?.eventDate, (
+    <a href="https://github.com/Artanty/serf/actions" target="_blank" rel="noreferrer">
+      serf actions ↗
+    </a>
+  ));
   items.push({
     key: 'master-steps',
     color: 'gray',
@@ -94,25 +100,25 @@ export const buildTimelineItems = (
         <div style={{ borderTop: `1px dashed ${borderColor}`, width: 'fit-content', minWidth: 180 }} />
         {schemaChips(masterSteps, BRANCH_CHIPS, (c) => masterSteps.includes(c))}
         <Space size={[4, 4]} wrap>
-          <Tag color={run.stages.MASTER_END ? 'green' : 'default'} style={{ opacity: run.stages.MASTER_END ? 1 : 0.55 }}>
+          <Tag color={stages.MASTER_END ? 'green' : 'default'} style={{ opacity: stages.MASTER_END ? 1 : 0.55 }}>
             push
           </Tag>
         </Space>
       </Space>
     ),
   });
-  if (run.stages.MASTER_END) {
-    push('master-end', 'green', 'master end — pushed to slave repo', run.stages.MASTER_END.eventDate);
-  } else if (run.stages.MASTER_ERROR) {
-    push('master-error', 'red', 'master error', run.stages.MASTER_ERROR.eventDate, (
+  if (stages.MASTER_END) {
+    push('master-end', 'green', 'master end — pushed to slave repo', stages.MASTER_END.eventDate);
+  } else if (stages.MASTER_ERROR) {
+    push('master-error', 'red', 'master error', stages.MASTER_ERROR.eventDate, (
       <Text type="secondary">last passed step: {masterSteps[masterSteps.length - 1] || '—'}</Text>
     ));
   } else {
     items.push({ key: 'master-open', color: 'gray', children: <Text type="secondary">master running…</Text> });
   }
 
-  if (run.stages.SLAVE_START || run.stages.SLAVE_END || run.stages.SLAVE_ERROR) {
-    push('slave-start', 'blue', 'slave start', run.stages.SLAVE_START?.eventDate);
+  if (stages.SLAVE_START || stages.SLAVE_END || stages.SLAVE_ERROR) {
+    push('slave-start', 'blue', 'slave start', stages.SLAVE_START?.eventDate);
     items.push({
       key: 'slave-steps',
       color: 'gray',
@@ -122,16 +128,16 @@ export const buildTimelineItems = (
         (c) => slaveSteps.includes(c)
       ),
     });
-    if (run.stages.SLAVE_END) {
-      push('slave-end', 'green', 'slave end — deployed', run.stages.SLAVE_END.eventDate);
-    } else if (run.stages.SLAVE_ERROR) {
-      push('slave-error', 'red', 'slave error', run.stages.SLAVE_ERROR.eventDate, (
+    if (stages.SLAVE_END) {
+      push('slave-end', 'green', 'slave end — deployed', stages.SLAVE_END.eventDate);
+    } else if (stages.SLAVE_ERROR) {
+      push('slave-error', 'red', 'slave error', stages.SLAVE_ERROR.eventDate, (
         <Text type="secondary">last passed step: {slaveSteps[slaveSteps.length - 1] || '—'}</Text>
       ));
     } else {
       items.push({ key: 'slave-open', color: 'gray', children: <Text type="secondary">slave running…</Text> });
     }
-  } else if (run.stages.MASTER_END) {
+  } else if (stages.MASTER_END) {
     items.push({
       key: 'no-slave',
       color: 'gray',
@@ -140,8 +146,8 @@ export const buildTimelineItems = (
   }
 
   const hosting = HOSTING_BY_BRANCH[BRANCH_CHIPS.find((c) => masterSteps.includes(c)) ?? ''];
-  const live = !!run.stages.SLAVE_END || (!!run.stages.MASTER_END && !slaveWorkflowGenerated);
-  const failed = !!run.stages.MASTER_ERROR || !!run.stages.SLAVE_ERROR;
+  const live = !!stages.SLAVE_END || (!!stages.MASTER_END && !slaveWorkflowGenerated);
+  const failed = !!stages.MASTER_ERROR || !!stages.SLAVE_ERROR;
   if (hosting) {
     items.push({
       key: 'hosting',

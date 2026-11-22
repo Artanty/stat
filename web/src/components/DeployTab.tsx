@@ -1,5 +1,5 @@
 import { Badge, Button, Col, Empty, Input, List, Row, Select, Space, Tag, Timeline, Tooltip, Typography } from 'antd';
-import { EyeInvisibleOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
+import { EyeInvisibleOutlined, EyeOutlined, LeftOutlined, RightOutlined, SearchOutlined } from '@ant-design/icons';
 import React, { useEffect, useMemo, useState } from 'react';
 import { FeatureSlot } from '../FeatureSlot';
 import { DeployRun, getDeployRuns } from '../api.service';
@@ -206,13 +206,28 @@ export const DeployTab: React.FC = () => {
 
   const run = useMemo(() => runs.find((r) => r.workflowRunId === selectedId) ?? null, [runs, selectedId]);
 
-  const masterSteps = run?.stages.MASTER_END?.steps ?? run?.stages.MASTER_ERROR?.steps ?? [];
-  const slaveSteps = run?.stages.SLAVE_END?.steps ?? run?.stages.SLAVE_ERROR?.steps ?? [];
+  // a retriggered run has several attempts under one workflowRunId; null = follow the newest
+  const [attemptIdx, setAttemptIdx] = useState<number | null>(null);
+  useEffect(() => {
+    setAttemptIdx(null);
+  }, [selectedId]);
+
+  const attemptList = useMemo(() => {
+    if (!run) return [];
+    return run.attempts?.length
+      ? run.attempts
+      : [{ startDate: run.startDate, endDate: run.endDate, hasError: run.hasError, stages: run.stages, events: run.events }];
+  }, [run]);
+  const idx = attemptIdx === null || attemptIdx >= attemptList.length ? attemptList.length - 1 : attemptIdx;
+  const attempt = attemptList[idx];
+
+  const masterSteps = attempt?.stages.MASTER_END?.steps ?? attempt?.stages.MASTER_ERROR?.steps ?? [];
+  const slaveSteps = attempt?.stages.SLAVE_END?.steps ?? attempt?.stages.SLAVE_ERROR?.steps ?? [];
   const slaveWorkflowGenerated = SLAVE_WORKFLOW_MARKS.some((m) => masterSteps.includes(m));
 
   const timelineItems = useMemo(
-    () => (run ? buildTimelineItems(run, masterSteps, slaveSteps, colors.border) : []),
-    [run, masterSteps, slaveSteps, colors.border]
+    () => (attempt ? buildTimelineItems(attempt.stages, masterSteps, slaveSteps, colors.border) : []),
+    [attempt, masterSteps, slaveSteps, colors.border]
   );
 
   const hideBtn = (
@@ -370,8 +385,38 @@ export const DeployTab: React.FC = () => {
                 </Space>
                 <div style={{ color: colors.text, marginTop: 4 }}>{run.commitMessage || '—'}</div>
                 <Text type="secondary" style={{ fontSize: 12 }}>
-                  {fmtRange(run.startDate, run.endDate)}
+                  {fmtRange(attempt?.startDate ?? run.startDate, attempt?.endDate ?? run.endDate)}
                 </Text>
+                {attemptList.length > 1 && (
+                  <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <Button
+                      size="small"
+                      icon={<LeftOutlined />}
+                      disabled={idx === 0}
+                      onClick={() => setAttemptIdx(idx - 1)}
+                    />
+                    {attemptList.map((_, i) => (
+                      <Button
+                        key={i}
+                        size="small"
+                        type={i === idx ? 'primary' : 'default'}
+                        onClick={() => setAttemptIdx(i)}
+                        style={{ minWidth: 28 }}
+                      >
+                        {i + 1}
+                      </Button>
+                    ))}
+                    <Button
+                      size="small"
+                      icon={<RightOutlined />}
+                      disabled={idx === attemptList.length - 1}
+                      onClick={() => setAttemptIdx(idx + 1)}
+                    />
+                    <Text type="secondary" style={{ fontSize: 12, marginLeft: 4 }}>
+                      attempt {idx + 1}/{attemptList.length}
+                    </Text>
+                  </div>
+                )}
               </div>
               <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', overflowX: 'hidden', wordBreak: 'break-word', minWidth: 0 }}>
                 <Timeline mode="left" items={timelineItems} />

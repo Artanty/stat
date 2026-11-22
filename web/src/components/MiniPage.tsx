@@ -67,7 +67,7 @@ export const MiniPage: React.FC = () => {
   const masterSteps = run?.stages.MASTER_END?.steps ?? run?.stages.MASTER_ERROR?.steps ?? [];
   const slaveSteps = run?.stages.SLAVE_END?.steps ?? run?.stages.SLAVE_ERROR?.steps ?? [];
   const timelineItems = useMemo(
-    () => (run ? buildTimelineItems(run, masterSteps, slaveSteps, colors.border) : []),
+    () => (run ? buildTimelineItems(run.stages, masterSteps, slaveSteps, colors.border) : []),
     [run, masterSteps, slaveSteps, colors.border]
   );
 

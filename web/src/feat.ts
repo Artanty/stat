@@ -29,7 +29,7 @@ export interface FeatureConfig {
  * - `app-infra` — script-only: the bus (request/reply transport), global-loading
  *   (blocking backdrop while a recovery runs), http-gate (config in feat-gate.ts).
  * - `app-version` — the feat `<deploy-info>` badge (version-display v4).
- * - `run-retrigger` — feat redeploy v2 <redeploy-button> in the DeployTab run header:
+ * - `run-retrigger` — feat redeploy v3 <redeploy-button> in the DeployTab run header:
  *   src = the stat back req-retrigger recipe, thru = the feat thru route (stat back
  *   sleeps on Render — the thru fetch wakes it and carries the call; the thru
  *   transport knowledge lives in the FEATURE, the app only passes URLs from env). */
@@ -53,7 +53,7 @@ export function bootstrapFeatures(featUrl: string, backendUrl: string): FeatureC
     row('app-infra', 'http-gate', 'v2'),
     row('app-version', 'version-display', 'v4', 'deploy-info'),
     ...(backendUrl
-      ? [row('run-retrigger', 'redeploy', 'v2', 'redeploy-button', {
+      ? [row('run-retrigger', 'redeploy', 'v3', 'redeploy-button', {
           src: `${backendUrl}/req/retrigger`,
           thru: `${featUrl}/thru`,
         })]

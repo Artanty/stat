@@ -364,3 +364,60 @@
 - Cause: newest run (stat@github back 1.0.22.1.0.28) has only MASTER_START/MASTER_END (no slave events ingested) -> runStatus 'master-done' -> warning(yellow). User: last deploy succeeded, want green.
 - Change: deployTimeline.tsx STATUS_META['master-done'].badge warning -> success. 'master-done' state kept (distinguishes runs w/o slave events) but renders green like 'done'.
 - Scope: web only; NOT deployed — needs stat -d.
+
+### Plan (2026-11-21, 14) - wire feat get-updates (runtime info endpoint)
+- feat shipped get-updates v1 (js-node) + loader v2 today (feat DECISIONS 2026-11-21):
+  GET /get-updates reports deploy identity (TAG_VERSION/COMMIT_ID/COMMIT/PROJECT_ID/
+  SLAVE_REPO/NAMESPACE envs), framework + packages from package.json, mounted feat
+  features, env presence map (values never sent). Slot backend-get-updates.
+- Steps: vendor loader v2 over features/loader.js/.d.ts (needed for the underscore ID
+  FEAT_GET_UPDATES_MOUNT; single-word ids like REQ behave as v1, req unaffected);
+  vendor features/get-updates/{get-updates.js,get-updates.d.ts} from
+  feat/back/features/get-updates/v1/js-node/; add FEAT_GET_UPDATES_MOUNT=/get-updates
+  to .env + .env.example (Render dashboard row needed too); tsc + local boot smoke
+  (curl /get-updates, check version/framework/packages/features/envs + req still
+  mounted); stop dev server. stat is authless by design — mount path stays public
+  (same exposure the old hand-rolled /get-updates had).
+
+### Progress (2026-11-21, 14) - get-updates wired via loader v2, smoke OK
+- Vendored features/loader.js/.d.ts = feat loader v2 (underscore IDs → hyphen dirs) and
+  features/get-updates/{get-updates.js,get-updates.d.ts} (feat get-updates v1).
+  FEAT_GET_UPDATES_MOUNT=/get-updates added to .env + .env.example. tsc clean.
+- Local boot smoke (PORT=4577, tsx): GET /get-updates → version 0.0.0.0 (package.json,
+  TAG_VERSION unset locally — Render CI injects it), framework express@^4.19.2, full
+  packages map, features ["get-updates","req"], env presence map only. req still mounts
+  through v2 loader (unknown recipe → 404 from its handler). Server stopped, port free.
+- NOT deployed: needs stat -d; Render dashboard also needs the FEAT_GET_UPDATES_MOUNT
+  row (local .env is not read in prod). Public by design — stat is authless; same
+  exposure as the old hand-rolled /get-updates removed 2026-11-17 (6).
+- User correction (same day): the endpoint must NOT exist by default — stat's repo/env
+  default is dormant; config passed at DEPLOY time decides. Removed the active
+  FEAT_GET_UPDATES_MOUNT row from .env; .env.example keeps it COMMENTED OUT with a
+  dormant-by-default note. Re-verified both states (PORT=4577): without the row
+  GET /get-updates → 404 (route absent; req unaffected); with the row injected at
+  runtime → 200 full payload, features ["get-updates","req"]. Server stopped, port free.
+  Prod enable = uncomment/set the row in the Render dashboard, not in the repo.
+- Rework (2026-11-22): consumer repos must carry NO feature files — feat loader v2.1
+  fetches features remotely. stat/back/features/get-updates/ DELETED; loader.js/.d.ts
+  re-vendored (v2.1). .env.example documents the deploy-time rows (all commented,
+  dormant by default): FEAT_URL=<feat host> + FEAT_GET_UPDATES_MOUNT=/get-updates.
+  req/ stays as a local pinned copy (local-first wins) — can go remote later.
+  E2E vs local feat :5477: rows set → /get-updates 200 (code fetched from feat at
+  boot, features ["get-updates","req"]); row absent → 404 route-absent. Servers
+  stopped, ports free. Prod enable = set both rows in Render env + stat -d (which
+  also needs feat deployed first for prod FEAT_URL to serve get-updates).
+- Cleanup (2026-11-22, 2): features/req/ DELETED too (leftover from the 2026-11-20
+  manual-vendor wiring, predates loader v2.1 remote resolution). stat now vendors ONLY
+  features/loader.js + loader.d.ts. tsc clean; e2e vs local feat :5477 with
+  FEAT_URL + FEAT_REQ_MOUNT + FEAT_GET_UPDATES_MOUNT: both features fetched from feat
+  at boot (features ["get-updates","req"]; /req/unknown → 404 from req's own handler).
+  Servers stopped. Rule "Features live in feat only" recorded as rule 4 in
+  know/entries/rules.md. Render env needs FEAT_REQ_* recipe rows unchanged.
+- Loader v3 (2026-11-22, 3): stat re-vendored loader.js/.d.ts = v3 named slots. Env
+  contract changed: FEAT_<ID>_SLOT row is the toggle (FEAT_REQ_SLOT=route,
+  FEAT_GET_UPDATES_SLOT=route); paths come from the features (get-updates
+  defaultMount /get-updates), _MOUNT only overrides. No stat code changes (still one
+  mountBackendFeatures call, zero feature files). tsc clean; e2e vs feat :5477: with
+  the two SLOT rows → /get-updates 200 + req mounted; without → both 404 dormant.
+  Render env after feat deploys: FEAT_URL + FEAT_REQ_SLOT=route (+ existing recipe
+  rows) + FEAT_GET_UPDATES_SLOT=route.

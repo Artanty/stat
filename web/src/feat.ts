@@ -16,6 +16,9 @@ export interface FeatureConfig {
   version: string;
   /** Bundle namespace segment ("js-web"). */
   namespace: string;
+  /** Build-time default attrs for the element (URLs from env — config data);
+   *  usage attrs (<FeatureSlot attrs=…>) override per render. */
+  attrs?: Record<string, string>;
 }
 
 /** Slots:
@@ -25,14 +28,20 @@ export interface FeatureConfig {
  *   retries the noy call while noy itself is a cold TW-VH app.
  * - `app-infra` — script-only: the bus (request/reply transport), global-loading
  *   (blocking backdrop while a recovery runs), http-gate (config in feat-gate.ts).
- * - `app-version` — the feat `<deploy-info>` badge (version-display v4). */
-export function bootstrapFeatures(featUrl: string): FeatureConfig[] {
+ * - `app-version` — the feat `<deploy-info>` badge (version-display v4).
+ * - `run-retrigger` — feat redeploy v2 <redeploy-button> in the DeployTab run header:
+ *   src = the stat back req-retrigger recipe, thru = the feat thru route (stat back
+ *   sleeps on Render — the thru fetch wakes it and carries the call; the thru
+ *   transport knowledge lives in the FEATURE, the app only passes URLs from env). */
+export function bootstrapFeatures(featUrl: string, backendUrl: string): FeatureConfig[] {
   featUrl = featUrl.replace(/\/+$/, '');
+  backendUrl = backendUrl.replace(/\/+$/, '');
   if (!featUrl) return [];
-  const row = (slot: string, id: string, version: string, element?: string): FeatureConfig => ({
+  const row = (slot: string, id: string, version: string, element?: string, attrs?: Record<string, string>): FeatureConfig => ({
     slot,
     id,
     ...(element ? { element } : {}),
+    ...(attrs ? { attrs } : {}),
     baseUrl: featUrl,
     version,
     namespace: 'js-web',
@@ -43,10 +52,16 @@ export function bootstrapFeatures(featUrl: string): FeatureConfig[] {
     row('app-infra', 'global-loading', 'v1'),
     row('app-infra', 'http-gate', 'v2'),
     row('app-version', 'version-display', 'v4', 'deploy-info'),
+    ...(backendUrl
+      ? [row('run-retrigger', 'redeploy', 'v2', 'redeploy-button', {
+          src: `${backendUrl}/req/retrigger`,
+          thru: `${featUrl}/thru`,
+        })]
+      : []),
   ];
 }
 
-export const BOOTSTRAP_FEATURES = bootstrapFeatures(process.env.FEAT_URL || '');
+export const BOOTSTRAP_FEATURES = bootstrapFeatures(process.env.FEAT_URL || '', process.env.BACKEND_URL || '');
 
 /** The feat host (feat.twc1.net) is a cold Passenger app on Timeweb VH: after idle the
  * first request burst fails fast at connection level (~50ms, status 0) — script tags

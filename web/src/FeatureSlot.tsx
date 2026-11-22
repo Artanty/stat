@@ -73,5 +73,5 @@ function SlotRow({
 
   // Script-only feature (no element): the bundle's side effects ARE the feature.
   if (!feature.element) return null;
-  return ready ? createElement(feature.element, attrs) : null;
+  return ready ? createElement(feature.element, { ...feature.attrs, ...attrs }) : null;
 }

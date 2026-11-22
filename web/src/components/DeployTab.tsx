@@ -1,7 +1,8 @@
-import { Badge, Button, Col, Empty, Input, List, Row, Select, Space, Tag, Timeline, Tooltip, Typography, message } from 'antd';
-import { EyeInvisibleOutlined, EyeOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { Badge, Button, Col, Empty, Input, List, Row, Select, Space, Tag, Timeline, Tooltip, Typography } from 'antd';
+import { EyeInvisibleOutlined, EyeOutlined, SearchOutlined } from '@ant-design/icons';
 import React, { useEffect, useMemo, useState } from 'react';
-import { DeployRun, getDeployRuns, retriggerRun } from '../api.service';
+import { FeatureSlot } from '../FeatureSlot';
+import { DeployRun, getDeployRuns } from '../api.service';
 import { useTheme } from '../theme';
 import {
   BRANCH_CHIPS,
@@ -113,23 +114,6 @@ export const DeployTab: React.FC = () => {
       setRuns([]);
     } finally {
       setLoading(false);
-    }
-  };
-
-  // stat back /req/retrigger recipe → flow /retrigger (token lives in stat back envs).
-  // Flow re-runs the SAME GitHub run id; the RETRIGGER stat event then moves the run to top.
-  const [retriggering, setRetriggering] = useState(false);
-  const retrigger = async (r: DeployRun) => {
-    const project = `${r.projectId.replace(/@github$/, '')}@${r.namespace}`;
-    setRetriggering(true);
-    try {
-      await retriggerRun(project);
-      message.success(`retriggered ${project}`);
-      loadRuns();
-    } catch (e: any) {
-      message.error(e.message);
-    } finally {
-      setRetriggering(false);
     }
   };
 
@@ -373,14 +357,16 @@ export const DeployTab: React.FC = () => {
                   <Tag>{run.namespace}</Tag>
                   {run.tag && <Tag color="blue">v{run.tag}</Tag>}
                   <Text code>run {run.workflowRunId}</Text>
-                  <Tooltip title="re-run this project's latest deploy run (same GitHub run, new attempt)">
-                    <Button
-                      size="small"
-                      icon={<ReloadOutlined />}
-                      loading={retriggering}
-                      onClick={() => retrigger(run)}
-                    />
-                  </Tooltip>
+                  {/* feat run-retrigger slot: redeploy v2 button — the thru/req
+                      machinery lives in the feature; this app only passes the run's
+                      project/namespace (src/thru come from the config row in feat.ts) */}
+                  <FeatureSlot
+                    slot="run-retrigger"
+                    attrs={{
+                      project: run.projectId.replace(/@github$/, ''),
+                      namespace: run.namespace,
+                    }}
+                  />
                 </Space>
                 <div style={{ color: colors.text, marginTop: 4 }}>{run.commitMessage || '—'}</div>
                 <Text type="secondary" style={{ fontSize: 12 }}>

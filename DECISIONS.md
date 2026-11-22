@@ -421,3 +421,28 @@
   the two SLOT rows → /get-updates 200 + req mounted; without → both 404 dormant.
   Render env after feat deploys: FEAT_URL + FEAT_REQ_SLOT=route (+ existing recipe
   rows) + FEAT_GET_UPDATES_SLOT=route.
+
+### Progress (2026-11-22, 15) - retriggerRun routed via feat thru (cold-Render fix)
+- HAR (input/stat.twc1.net.har): retrigger POST + OPTIONS to stat-3lmc.onrender.com
+  both status 0 — Render free tier asleep, cross-origin preflight never answered.
+  getDeployRuns survives via gatedFetch (wake-up gate); retriggerRun used a bare fetch.
+- web api.service.ts: retriggerRun now calls the feat thru feature (spec
+  feat/back/spec/thru.md): GET ${THRU_URL}?target=<BACKEND_URL>/req/retrigger&method=
+  post&body={project}&timeout_s=120 — thru (always-on at feat.twc1.net/thru, verified
+  200 on prod) fetches server-side; that fetch wakes Render; 120s covers the cold
+  start (thru default 30). THRU_URL row added to .env (feat.twc1.net/thru; dev can
+  point at local feat flask :5477). Note: distinct from the old THRU_URL1/noy
+  all-API experiment — this routes ONLY retrigger. tsc: only the pre-existing
+  rc-picker error.
+- E2E local (mock flow :4590 + feat flask :5477 + stat tsx :4577, req feature loaded
+  REMOTELY via loader v3 SLOT rows): thru?target=…/req/retrigger&method=post&body=
+  {"project":"safe@web"} → mock flow received POST /retrigger with Authorization:
+  Bearer testtok and body {"project":"safe@web"} — token injected server-side,
+  param substituted, whole chain green. Servers stopped. Needs stat -d to ship.
+- Doctrine fix (2026-11-23, 16): stat web no longer knows retrigger/thru —
+  api.service.retriggerRun + THRU_URL removed (supersedes entry 15's thru patch);
+  DeployTab renders <FeatureSlot slot="run-retrigger">; the row in feat.ts fills it
+  with feat redeploy v2 (src=BACKEND_URL/req/retrigger, thru=FEAT_URL/thru from env);
+  the thru transport lives in the feature. parcel build clean. Needs feat -d first
+  (redeploy v2 must exist on the feat host), then stat -d; until then the slot is
+  silently dark.

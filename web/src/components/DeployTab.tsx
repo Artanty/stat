@@ -81,6 +81,10 @@ export const DeployTab: React.FC = () => {
     () => localStorage.getItem('deployTabNamespace') || 'all'
   );
   const [showHidden, setShowHidden] = useState(false);
+  // auto-reload interval for the runs list: '-' = off, otherwise seconds between reloads
+  const [autoReload, setAutoReload] = useState<string>(
+    () => localStorage.getItem('deployTabAutoReload') || '-'
+  );
   const [hidden, setHidden] = useState<string[]>(() => {
     try {
       const raw = JSON.parse(localStorage.getItem('deployTabHiddenProjects') || '[]');
@@ -122,6 +126,21 @@ export const DeployTab: React.FC = () => {
     loadRuns();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // periodic reload when a non-'-' interval is selected
+  useEffect(() => {
+    if (autoReload === '-') return;
+    const seconds = Number(autoReload);
+    if (!Number.isFinite(seconds) || seconds <= 0) return;
+    const timer = setInterval(() => loadRuns(), seconds * 1000);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoReload]);
+
+  const changeAutoReload = (v: string) => {
+    setAutoReload(v);
+    localStorage.setItem('deployTabAutoReload', v);
+  };
 
   // sorted by name, with run count, unique namespaces and last-run status, derived from the fetched runs
   const projects = useMemo(() => {
@@ -301,9 +320,22 @@ export const DeployTab: React.FC = () => {
                   ]}
                 />
               </Space>
-              <Button size="small" loading={loading} onClick={() => loadRuns()}>
-                reload
-              </Button>
+              <Space size={8}>
+                <Select
+                  size="small"
+                  value={autoReload}
+                  onChange={changeAutoReload}
+                  style={{ minWidth: 70 }}
+                  options={[
+                    { value: '-', label: '-' },
+                    { value: '5', label: '5' },
+                    { value: '10', label: '10' },
+                  ]}
+                />
+                <Button size="small" loading={loading} onClick={() => loadRuns()}>
+                  reload
+                </Button>
+              </Space>
             </Space>
             <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
             <List

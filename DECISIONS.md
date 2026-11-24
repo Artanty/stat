@@ -1,5 +1,23 @@
 # DECISIONS.md
 
+## Task: auto-reload select in runs header (2026-11-24)
+
+### Plan (2026-11-24)
+- Why: the reload button in the runs column header is manual; user wants an option to
+  have the runs list refresh itself periodically.
+- DeployTab runs header (next to the reload Button) gains a small Select with options
+  `'-'` (off, default), `5`, `10` — value = seconds between reloads.
+- New state `autoReload` (persisted `deployTabAutoReload`); an effect sets an
+  `setInterval(loadRuns, seconds*1000)` whenever the value is not '-', clearing it on
+  change/unmount. loadRuns stays as-is (button keeps working).
+
+### Progress (2026-11-24)
+- DONE in DeployTab.tsx: `autoReload` state (persisted `deployTabAutoReload`, default '-'),
+  effect wires `setInterval(loadRuns, seconds*1000)` for non-'-' values (cleared on change/
+  unmount), `changeAutoReload` handler, and a small Select ('-' / 5 / 10) rendered beside the
+  reload Button in the runs column header (Space around both). tsc: only the pre-existing
+  rc-picker error; `parcel build` OK. NOT deployed — needs stat `-d`.
+
 ## Task: attempt pagination for retriggered runs (2026-11-23)
 
 ### Plan (2026-11-23)

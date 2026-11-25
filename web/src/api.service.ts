@@ -20,6 +20,8 @@ export interface DeployEvent {
   eventDate: string;
   steps: string[];
   commitMessage: string | null;
+  workflowRef: string | null;
+  apiVersion: string | null;
 }
 
 export type DeployStage = 'MASTER_START' | 'MASTER_END' | 'MASTER_ERROR' | 'SLAVE_START' | 'SLAVE_END' | 'SLAVE_ERROR'
@@ -40,6 +42,9 @@ export interface DeployRun {
   namespace: string;
   commitMessage: string | null;
   tag: string;
+  workflowRef: string | null;
+  workflowFile: string;
+  apiVersion: string;
   startDate: string;
   endDate: string;
   hasError: boolean;

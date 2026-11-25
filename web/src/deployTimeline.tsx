@@ -55,6 +55,21 @@ export const schemaChips = (steps: string[], chips: string[], lit: (c: string) =
   </Space>
 );
 
+// master action lives in the serf repo — link to the workflow file that ran.
+// workflowRef = owner/repo/.github/workflows/<file>@<ref> (sent by the master since api v2;
+// older events carry none = deploy.yml, api v1).
+export const SERF_ACTIONS_URL = 'https://github.com/Artanty/serf/actions';
+export const serfWorkflow = (ev?: DeployEvent): { url: string; label: string } => {
+  const api = ev?.apiVersion || '1';
+  const ref = ev?.workflowRef || '';
+  const [path] = ref.split('@');
+  const file = path.split('/').pop() || 'deploy.yml';
+  const url = ref
+    ? `https://github.com/${path.slice(0, -file.length - 1)}/actions/workflows/${file}`
+    : SERF_ACTIONS_URL;
+  return { url, label: `api v${api} · ${file}` };
+};
+
 // stages of ONE attempt (not the whole merged run) — pass run.stages or attempt.stages
 export const buildTimelineItems = (
   stages: Partial<Record<DeployStage, DeployEvent>>,
@@ -85,10 +100,11 @@ export const buildTimelineItems = (
 
   const slaveWorkflowGenerated = SLAVE_WORKFLOW_MARKS.some((m) => masterSteps.includes(m));
 
-  // master action lives in the serf repo — link straight to its Actions page
+  // master action lives in the serf repo — link straight to its workflow file
+  const serf = serfWorkflow(stages.MASTER_START);
   push('master-start', 'green', 'master start', stages.MASTER_START?.eventDate, (
-    <a href="https://github.com/Artanty/serf/actions" target="_blank" rel="noreferrer">
-      serf actions ↗
+    <a href={serf.url} target="_blank" rel="noreferrer">
+      {serf.label} ↗
     </a>
   ));
   items.push({

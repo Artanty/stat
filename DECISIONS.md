@@ -1,5 +1,40 @@
 # DECISIONS.md
 
+## Task: deploy API version in the run timeline (2026-11-26)
+
+### Plan (2026-11-26)
+- Why: the 'serf actions ↗' timeline item links to the hardcoded serf actions root; the
+  user wants to see WHICH deploy API version the selected run used and link to its
+  workflow file (…/actions/workflows/deploy_v2.yml).
+- Sender = serf MASTER workflow (only it knows the file): step "Set working directory"
+  exports `DPL_WORKFLOW_REF=${{ github.workflow_ref }}` + hardcoded `DPL_API_VERSION=2`
+  (per file name); the 3 master send steps add `workflowRef` + `apiVersion` to the
+  /add-event payload. Slaves untouched.
+- Back: ensure_deploy_columns += workflowRef VARCHAR(255), apiVersion VARCHAR(16);
+  /add-event extras; DeployRunDto += workflowRef, workflowFile (basename),
+  apiVersion (first non-empty).
+- Web: DeployRun type; master-start item shows `api vN · <file>` (old runs = v1) and
+  links to github.com/<owner/repo>/actions/workflows/<file>, hardcoded link as fallback.
+
+### Progress (2026-11-26)
+- serf deploy_v2.yml + deploy.yml: "Set working directory" exports DPL_WORKFLOW_REF
+  (`github.workflow_ref`) + DPL_API_VERSION (2 / 1); the 3 master send steps add
+  `workflowRef` + `apiVersion` to the payload. Vars come straight from $GITHUB_ENV (no
+  per-step env mapping needed). Both files parse as YAML; NOT committed/deployed.
+- Back: columns workflowRef + apiVersion added to ensure_deploy_columns; /add-event
+  extras; deployRuns SELECT + DeployEventDto; run-level workflowRef, workflowFile,
+  apiVersion (events without the field = '1'). typecheck clean.
+- Web: DeployEvent/DeployRun types; deployTimeline.tsx `serfWorkflow(ev)` — master-start
+  item reads the ATTEMPT's MASTER_START event and renders `api vN · <file> ↗` linking to
+  github.com/<owner/repo>/actions/workflows/<file> (no workflowRef = old hardcoded serf
+  actions link, v1). tsc: only the pre-existing rc-picker error; parcel build OK.
+- Verified on a local back (:4578) against the real DB: boot added the 2 columns; a test
+  run (MASTER_START/END with workflowRef + apiVersion 2) read back workflowFile
+  deploy_v2.yml / apiVersion "2"; older runs (tik@github, flow@github) fall back to
+  apiVersion "1". Test rows deleted. Browser render of the new item NOT checked.
+- The columns now exist in the DB (idempotent), so a stat -d is safe; old runs keep
+  showing `api v1 · deploy.yml ↗` but with the old actions-root link (no ref stored).
+- NOT deployed — needs serf commit + stat -d.
 ## Task: auto-reload select in runs header (2026-11-24)
 
 ### Plan (2026-11-24)

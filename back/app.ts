@@ -51,11 +51,13 @@ interface AddEventBody {
   workflowRunId?: string;
   commitMessage?: string;
   steps?: string | string[];
+  workflowRef?: string;
+  apiVersion?: string;
 }
 
 // telemetry ingestion — serf master/slave workflows POST their deploy events here
 app.post('/add-event', async (req: Request, res: Response) => {
-  const { projectId, namespace, stage, isError, eventData, eventDate, workflow, workflowRunId, commitMessage, steps } = req.body as AddEventBody;
+  const { projectId, namespace, stage, isError, eventData, eventDate, workflow, workflowRunId, commitMessage, steps, workflowRef, apiVersion } = req.body as AddEventBody;
 
   // Validate required fields
   if (!projectId || !namespace || !stage) {
@@ -72,6 +74,8 @@ app.post('/add-event', async (req: Request, res: Response) => {
     ['workflowRunId', workflowRunId],
     ['commitMessage', commitMessage],
     ['steps', stepsValue],
+    ['workflowRef', workflowRef],
+    ['apiVersion', apiVersion],
   ];
   for (const [column, value] of extras) {
     // empty string = field absent (e.g. slave .env without WORKFLOW_RUN_ID) — keep it NULL

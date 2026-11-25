@@ -25,6 +25,8 @@ export interface DeployEventDto {
   eventDate: string;
   steps: string[];
   commitMessage: string | null;
+  workflowRef: string | null;
+  apiVersion: string | null;
 }
 
 // one execution attempt of a run — a retriggered run re-runs the whole workflow
@@ -43,6 +45,10 @@ export interface DeployRunDto {
   namespace: string;
   commitMessage: string | null;
   tag: string;
+  // serf workflow file the master ran, e.g. owner/serf/.github/workflows/deploy_v2.yml@refs/heads/master
+  workflowRef: string | null;
+  workflowFile: string;
+  apiVersion: string;
   startDate: string;
   endDate: string;
   hasError: boolean;
@@ -99,11 +105,18 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
   }
   // a run has up to ~6 events; fetch a window, group, then trim to the run limit
   queryParams.push(Math.max((limit || 50) * 8, 100));
-  const sql = `SELECT id, projectId, namespace, stage, isError, eventData, eventDate, workflow, workflowRunId, commitMessage, steps
+  const sql = `SELECT id, projectId, namespace, stage, isError, eventData, eventDate, workflow, workflowRunId, commitMessage, steps, workflowRef, apiVersion
     FROM events WHERE ${conditions.join(' AND ')} ORDER BY id DESC LIMIT ?`;
 
   const [rows] = await pool.query(sql, queryParams);
-  const dbRows = rows as (EventRow & { workflow: string | null; workflowRunId: string; commitMessage: string | null; steps: string | null })[];
+  const dbRows = rows as (EventRow & {
+    workflow: string | null;
+    workflowRunId: string;
+    commitMessage: string | null;
+    steps: string | null;
+    workflowRef: string | null;
+    apiVersion: string | null;
+  })[];
 
   const byRun = new Map<string, DeployEventDto[]>();
   for (const row of dbRows) {
@@ -118,6 +131,8 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
       eventDate: row.eventDate,
       steps: parseSteps(row.steps),
       commitMessage: row.commitMessage,
+      workflowRef: row.workflowRef,
+      apiVersion: row.apiVersion,
     };
     const list = byRun.get(row.workflowRunId) || [];
     list.unshift(dto); // rows are newest-first; unshift keeps chronological order per run
@@ -154,12 +169,21 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
       // stage): latest occurrence wins
       const retriggerEvts = events.filter((e) => e.stage === 'RETRIGGER');
       const retriggeredAt = retriggerEvts.length ? retriggerEvts[retriggerEvts.length - 1].eventDate : null;
+      // workflow file + api version come from the master events only
+      const workflowRef = events.map((e) => e.workflowRef).find((v) => v) || null;
+      // file name without the @ref suffix: …/.github/workflows/deploy_v2.yml@refs/heads/master
+      const workflowFile = workflowRef ? workflowRef.split('@')[0].split('/').pop() as string : '';
+      // events predating the field were sent by deploy.yml = api v1
+      const apiVersion = events.map((e) => e.apiVersion).find((v) => v) || '1';
       return {
         workflowRunId: runId,
         projectId: first.projectId,
         namespace: first.namespace,
         commitMessage: events.map((e) => e.commitMessage).find((v) => v) || null,
         tag: events.map((e) => e.eventData).find((v) => v) || '',
+        workflowRef,
+        workflowFile,
+        apiVersion,
         startDate: latest.startDate,
         endDate: last.eventDate,
         hasError: latest.hasError,

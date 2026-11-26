@@ -20,6 +20,8 @@ const COLORS = {
 } as const;
 
 const MASTER_CHIPS = ['start', 'checkout', 'tech-stack', 'safe', 'env-created', 'push'];
+// flow (webhook service) step tags — mirrors web/src/deployTimeline.tsx FLOW_CHIPS
+const FLOW_CHIPS = ['webhook-received', 'signature-verified', 'tag-parsed', 'prev-tag-resolved', 'namespaces-resolved', 'safe-version', 'dispatch'];
 const BRANCH_CHIPS = ['vercel-json', 'render-yaml', 'ftp-workflow', 'vh-workflow', 'vds-workflow'];
 const SLAVE_WORKFLOW_MARKS = ['ftp-workflow', 'vh-workflow', 'vds-workflow'];
 const HOSTING_BY_BRANCH: Record<string, string> = {
@@ -39,7 +41,7 @@ const STATUS_META: Record<RunStatus, { color: string; label: string }> = {
 };
 
 const runStatus = (run: DeployRunDto): RunStatus => {
-  if (run.stages.MASTER_ERROR || run.stages.SLAVE_ERROR) return 'error';
+  if (run.stages.FLOW_ERROR || run.stages.MASTER_ERROR || run.stages.SLAVE_ERROR) return 'error';
   if (run.stages.SLAVE_END) return 'done';
   if (run.stages.MASTER_END) return 'master-done';
   return 'running';
@@ -131,10 +133,40 @@ const slaveSteps = (run: DeployRunDto): string[] => run.stages.SLAVE_END?.steps 
 
 const lastPassed = (steps: string[]): string => steps[steps.length - 1] || '—';
 
+const flowSteps = (run: DeployRunDto): string[] =>
+  run.stages.FLOW_END?.steps ?? run.stages.FLOW_ERROR?.steps ?? run.stages.FLOW_START?.steps ?? [];
+
 const buildTimeline = (run: DeployRunDto): Div[] => {
   const items: Div[] = [];
   const mSteps = masterSteps(run);
   const sSteps = slaveSteps(run);
+
+  // flow (webhook service) — FIRST in the timeline; a flow-only run (no master
+  // start) means the serf action never started
+  if (run.stages.FLOW_START) {
+    const fSteps = flowSteps(run);
+    items.push(...timelineRow(COLORS.blue, 'flow — webhook', run.stages.FLOW_START.eventDate));
+    items.push(chipsRow(fSteps, FLOW_CHIPS));
+    if (run.stages.FLOW_END) {
+      items.push(...timelineRow(COLORS.blue, 'flow end — dispatched', run.stages.FLOW_END.eventDate));
+    } else if (run.stages.FLOW_ERROR) {
+      items.push(
+        ...timelineRow(COLORS.red, 'flow error', run.stages.FLOW_ERROR.eventDate, [
+          text(`last passed step: ${lastPassed(fSteps)}`, {
+            font_size: 11,
+            text_color: COLORS.gray,
+            margins: { left: 16, top: 2 },
+          }),
+        ])
+      );
+    } else {
+      items.push(...timelineRow(COLORS.gray, 'flow running…'));
+    }
+    if (!run.stages.MASTER_START) {
+      items.push(...timelineRow(run.stages.FLOW_ERROR ? COLORS.red : COLORS.gray, 'github action not started'));
+      return items;
+    }
+  }
 
   items.push(...timelineRow(COLORS.green, 'master start', run.stages.MASTER_START?.eventDate));
   items.push(chipsRow(mSteps, MASTER_CHIPS.filter((c) => c !== 'push')));

@@ -11,7 +11,7 @@ export interface EventRow {
   [key: string]: unknown;
 }
 
-export const DEPLOY_STAGES = ['MASTER_START', 'MASTER_END', 'MASTER_ERROR', 'SLAVE_START', 'SLAVE_END', 'SLAVE_ERROR'] as const;
+export const DEPLOY_STAGES = ['FLOW_START', 'FLOW_END', 'FLOW_ERROR', 'MASTER_START', 'MASTER_END', 'MASTER_ERROR', 'SLAVE_START', 'SLAVE_END', 'SLAVE_ERROR'] as const;
 export type DeployStage = (typeof DEPLOY_STAGES)[number];
 
 export interface DeployEventDto {
@@ -57,6 +57,9 @@ export interface DeployRunDto {
   stages: Partial<Record<DeployStage, DeployEventDto>>;
   events: DeployEventDto[];
   attempts: DeployAttemptDto[];
+  // true when the run exists only from flow (webhook) telemetry: the GitHub Action
+  // never started, so there is no real workflowRunId and nothing to retrigger
+  flowOnly: boolean;
 }
 
 export interface GetDeployRunsQuery {
@@ -80,12 +83,32 @@ export function parseSteps(raw: unknown): string[] {
   return raw.split(',').map((s) => s.trim()).filter(Boolean);
 }
 
+// flow (webhook) telemetry: FLOW_* events arrive with NO workflowRunId — they are sent
+// before the GitHub Action exists. They are grouped per (projectId, namespace) — a
+// FLOW_START opens a group — and merged at read time into the earliest subsequent run
+// of the same project+namespace (event ids are monotonic, so "subsequent" = the run
+// whose first real event id is greater than the group's last id). Groups with no
+// subsequent run become provisional flow-only runs (no run id, nothing to retrigger).
+const FLOW_STAGES = ['FLOW_START', 'FLOW_END', 'FLOW_ERROR'] as const;
+
+// flow's eventData is a JSON object; the run tag lives in its .tag (same value serf
+// sends as the master's plain-string eventData — the git_tag workflow input)
+function eventDataTag(event: DeployEventDto): string {
+  if (!event.stage.startsWith('FLOW_')) return event.eventData;
+  try {
+    const parsed = JSON.parse(event.eventData) as { tag?: unknown };
+    return parsed.tag == null ? '' : String(parsed.tag);
+  } catch {
+    return event.eventData;
+  }
+}
+
 // fetch deploy events and group them by workflowRunId into run objects (master/slave stages map),
 // newest run first — the query logic shared by POST /get-deploy-runs and the mini envelope
 export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}): Promise<DeployRunDto[]> {
   const { projectId, workflowRunId, dateRange, limit } = query;
 
-  const conditions: string[] = ['workflowRunId IS NOT NULL'];
+  const conditions: string[] = [`(workflowRunId IS NOT NULL OR stage IN (${FLOW_STAGES.map((s) => `'${s}'`).join(',')}))`];
   const queryParams: (string | number)[] = [];
   if (projectId) {
     conditions.push('projectId = ?');
@@ -111,7 +134,7 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
   const [rows] = await pool.query(sql, queryParams);
   const dbRows = rows as (EventRow & {
     workflow: string | null;
-    workflowRunId: string;
+    workflowRunId: string | null;
     commitMessage: string | null;
     steps: string | null;
     workflowRef: string | null;
@@ -119,7 +142,10 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
   })[];
 
   const byRun = new Map<string, DeployEventDto[]>();
-  for (const row of dbRows) {
+  const flowGroups = new Map<string, DeployEventDto[][]>(); // `${projectId}\t${namespace}` → chronological groups
+  // rows are newest-first; walk chronologically so flow groups assemble in order and
+  // run event lists end up chronological via plain push
+  for (const row of [...dbRows].reverse()) {
     const dto: DeployEventDto = {
       id: row.id,
       projectId: row.projectId,
@@ -134,9 +160,57 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
       workflowRef: row.workflowRef,
       apiVersion: row.apiVersion,
     };
-    const list = byRun.get(row.workflowRunId) || [];
-    list.unshift(dto); // rows are newest-first; unshift keeps chronological order per run
-    byRun.set(row.workflowRunId, list);
+    if (row.workflowRunId) {
+      const list = byRun.get(row.workflowRunId) || [];
+      list.push(dto);
+      byRun.set(row.workflowRunId, list);
+    } else {
+      const key = `${row.projectId}\t${row.namespace}`;
+      const groups = flowGroups.get(key) || [];
+      const current = groups[groups.length - 1];
+      if (row.stage === 'FLOW_START' || !current) {
+        groups.push([dto]);
+      } else {
+        current.push(dto);
+      }
+      flowGroups.set(key, groups);
+    }
+  }
+
+  // first real event id per run, captured BEFORE any prepends — the merge target
+  // must keep matching on the run's own first event, not on an attached flow group
+  const firstRealId = new Map<string, number>();
+  for (const [runId, events] of byRun) {
+    firstRealId.set(runId, events[0].id);
+  }
+
+  const flowOnlyRunIds = new Set<string>();
+  const prependToRun = new Map<string, DeployEventDto[][]>(); // runId → groups, chronological
+  for (const [key, groups] of flowGroups) {
+    const [flowProjectId, flowNamespace] = key.split('\t');
+    for (const group of groups) {
+      const lastId = group[group.length - 1].id;
+      const targetRunId = [...firstRealId.entries()]
+        .filter(([runId, firstId]) => {
+          const events = byRun.get(runId)!;
+          return events[0].projectId === flowProjectId
+            && events[0].namespace === flowNamespace
+            && firstId > lastId;
+        })
+        .sort((a, b) => (a[1] < b[1] ? -1 : 1))[0]?.[0];
+      if (targetRunId) {
+        const queue = prependToRun.get(targetRunId) || [];
+        queue.push(group);
+        prependToRun.set(targetRunId, queue);
+      } else {
+        const provisionalId = `flow:${group[0].id}`;
+        byRun.set(provisionalId, group);
+        flowOnlyRunIds.add(provisionalId);
+      }
+    }
+  }
+  for (const [runId, groups] of prependToRun) {
+    byRun.get(runId)!.unshift(...groups.flat());
   }
 
   return [...byRun.entries()]
@@ -160,6 +234,16 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
         attempt.hasError = attempt.hasError || e.isError === 1;
         attempt.endDate = e.eventDate;
       }
+      // deferred-flow recovery: a FLOW_ERROR followed by a LATER FLOW_END in the
+      // same attempt is the noy wake-and-callback path (error → deferred → resume
+      // → dispatched) — the run must not stay red once the deferred dispatch landed
+      for (const att of attempts) {
+        const flowErr = att.stages.FLOW_ERROR;
+        if (flowErr && att.events.some((e) => e.stage === 'FLOW_END' && e.id > flowErr.id)) {
+          delete att.stages.FLOW_ERROR;
+          att.hasError = att.events.some((e) => e.isError === 1 && e.stage !== 'FLOW_ERROR');
+        }
+      }
       const first = events[0];
       const last = events[events.length - 1];
       // run-level fields reflect the LATEST attempt (current state); endDate keeps
@@ -180,7 +264,7 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
         projectId: first.projectId,
         namespace: first.namespace,
         commitMessage: events.map((e) => e.commitMessage).find((v) => v) || null,
-        tag: events.map((e) => e.eventData).find((v) => v) || '',
+        tag: events.map(eventDataTag).find((v) => v) || '',
         workflowRef,
         workflowFile,
         apiVersion,
@@ -192,6 +276,7 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
         stages: latest.stages,
         events,
         attempts,
+        flowOnly: flowOnlyRunIds.has(runId),
       };
     })
     // sort by last activity (endDate), not startDate — a re-run adds events to the SAME

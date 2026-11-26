@@ -541,3 +541,23 @@
   the same element. Fix lives in feat redeploy v3 (click-time attr() reads); stat
   feat.ts pins v3 (string-only change, no stat deploy needed — the slot loads from the
   feat host at runtime; needs feat -d).
+- flow pre-action runs (2026-11-27, 18): fetchDeployRuns now also reads FLOW_START /
+  FLOW_END / FLOW_ERROR rows (workflowRunId IS NULL — flow's webhook telemetry, sent
+  before any GitHub run exists). Grouped per (projectId, namespace) — a FLOW_START
+  opens a group — and MERGED AT READ TIME into the earliest subsequent run of the
+  same project+namespace (event ids are monotonic; the run's first real id > group's
+  last id). Orphan groups become provisional runs: workflowRunId `flow:<FLOW_START
+  event id>`, flowOnly flag set — DeployTab hides the run-retrigger slot and the run
+  id for them (nothing to re-run), timeline shows the flow step + "github action not
+  started". Flow step renders FIRST in the timeline (web deployTimeline.tsx +
+  miniEnvelope twin) with FLOW_CHIPS from the flow event's steps; FLOW_ERROR drives
+  run status error. Flow's eventData is JSON — the run tag comes from its .tag (same
+  value serf sends as MASTER_START's plain eventData). Deploy order: stat -d first,
+  then flow -d. Verified: back/test/deployRuns-flow.test.mjs (pool stubbed, 14
+  checks: merge, provisional, project/namespace isolation, earliest-target, tag).
+- deferred-flow recovery pass (2026-11-27, 19): fetchDeployRuns clears an
+  attempt's FLOW_ERROR when a LATER FLOW_END exists in the same attempt — the
+  noy wake-and-callback path (flow defers a cold-safe dispatch, noy wakes safe,
+  POSTs flow /dispatch-callback, the deferred dispatch lands) must not keep the
+  recovered run red. hasError recomputed without the FLOW_ERROR. Test case 6 in
+  back/test/deployRuns-flow.test.mjs (18 checks green). Needs stat -d.

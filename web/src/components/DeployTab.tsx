@@ -382,7 +382,7 @@ export const DeployTab: React.FC = () => {
                       {r.commitMessage || '—'}
                     </div>
                     <Text type="secondary" style={{ fontSize: 12 }}>
-                      {fmtDate(r.startDate)} · run {r.workflowRunId.slice(-6)}
+                      {fmtDate(r.startDate)} · {r.flowOnly ? 'flow (no gh action yet)' : `run ${r.workflowRunId.slice(-6)}`}
                     </Text>
                   </div>
                 );
@@ -403,17 +403,24 @@ export const DeployTab: React.FC = () => {
                   </Title>
                   <Tag>{run.namespace}</Tag>
                   {run.tag && <Tag color="blue">v{run.tag}</Tag>}
-                  <Text code>run {run.workflowRunId}</Text>
+                  {run.flowOnly ? (
+                    <Text code>flow run — gh action not started</Text>
+                  ) : (
+                    <Text code>run {run.workflowRunId}</Text>
+                  )}
                   {/* feat run-retrigger slot: redeploy v2 button — the thru/req
                       machinery lives in the feature; this app only passes the run's
-                      project/namespace (src/thru come from the config row in feat.ts) */}
-                  <FeatureSlot
-                    slot="run-retrigger"
-                    attrs={{
-                      project: run.projectId.replace(/@github$/, ''),
-                      namespace: run.namespace,
-                    }}
-                  />
+                      project/namespace (src/thru come from the config row in feat.ts).
+                      flowOnly runs have no GitHub run to re-run, so the slot is hidden */}
+                  {!run.flowOnly && (
+                    <FeatureSlot
+                      slot="run-retrigger"
+                      attrs={{
+                        project: run.projectId.replace(/@github$/, ''),
+                        namespace: run.namespace,
+                      }}
+                    />
+                  )}
                 </Space>
                 <div style={{ color: colors.text, marginTop: 4 }}>{run.commitMessage || '—'}</div>
                 <Text type="secondary" style={{ fontSize: 12 }}>

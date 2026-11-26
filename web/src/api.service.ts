@@ -24,7 +24,7 @@ export interface DeployEvent {
   apiVersion: string | null;
 }
 
-export type DeployStage = 'MASTER_START' | 'MASTER_END' | 'MASTER_ERROR' | 'SLAVE_START' | 'SLAVE_END' | 'SLAVE_ERROR'
+export type DeployStage = 'FLOW_START' | 'FLOW_END' | 'FLOW_ERROR' | 'MASTER_START' | 'MASTER_END' | 'MASTER_ERROR' | 'SLAVE_START' | 'SLAVE_END' | 'SLAVE_ERROR'
 
 // one execution attempt of a run — a retriggered run re-runs the whole workflow
 // under the SAME workflowRunId; attempts are ordered oldest → newest
@@ -53,6 +53,8 @@ export interface DeployRun {
   stages: Partial<Record<DeployStage, DeployEvent>>;
   events: DeployEvent[];
   attempts: DeployAttempt[];
+  // run exists only from flow (webhook) telemetry — no real workflowRunId, nothing to retrigger
+  flowOnly: boolean;
 }
 
 export const getDeployRuns = async (payload?: GetDeployRunsRequest): Promise<DeployRun[]> => {

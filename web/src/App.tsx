@@ -8,6 +8,7 @@ const ThemedApp: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { isDark, colors } = useTheme();
 
   
+  
   return (
     <ConfigProvider
       theme={{

@@ -137,11 +137,25 @@ export const buildTimelineItems = (
 
   // master action lives in the serf repo — link straight to its workflow file
   const serf = serfWorkflow(stages.MASTER_START);
-  push('master-start', 'green', 'master start', stages.MASTER_START?.eventDate, (
-    <a href={serf.url} target="_blank" rel="noreferrer">
-      {serf.label} ↗
-    </a>
-  ));
+  // 'api vN · <file> ↗ | all ↗ | run ↗' — file link, the repo's full actions
+  // list, and the exact master run (runUrl sent by serf since api v3; missing
+  // on older events — the link row simply drops it)
+  const masterLinks = (
+    <Space size={6} wrap>
+      <a href={serf.url} target="_blank" rel="noreferrer">
+        {serf.label} ↗
+      </a>
+      <a href={SERF_ACTIONS_URL} target="_blank" rel="noreferrer">
+        all ↗
+      </a>
+      {stages.MASTER_START?.runUrl && (
+        <a href={stages.MASTER_START.runUrl} target="_blank" rel="noreferrer">
+          run ↗
+        </a>
+      )}
+    </Space>
+  );
+  push('master-start', 'green', 'master start', stages.MASTER_START?.eventDate, masterLinks);
   items.push({
     key: 'master-steps',
     color: 'gray',
@@ -161,8 +175,22 @@ export const buildTimelineItems = (
   if (stages.MASTER_END) {
     push('master-end', 'green', 'master end — pushed to slave repo', stages.MASTER_END.eventDate);
   } else if (stages.MASTER_ERROR) {
+    // what failed: the error text the workflow sent (error column, api v3) + a direct
+    // link to the failed run; falls back to the legacy bare row for old events
+    const errText = stages.MASTER_ERROR.error
+      ?? 'see the run log for details';
     push('master-error', 'red', 'master error', stages.MASTER_ERROR.eventDate, (
-      <Text type="secondary">last passed step: {masterSteps[masterSteps.length - 1] || '—'}</Text>
+      <Space direction="vertical" size={2} style={{ maxWidth: 460 }}>
+        <Text type="secondary">last passed step: {masterSteps[masterSteps.length - 1] || '—'}</Text>
+        <Text type="danger" code style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}>
+          {errText}
+        </Text>
+        {stages.MASTER_ERROR.runUrl && (
+          <a href={stages.MASTER_ERROR.runUrl} target="_blank" rel="noreferrer">
+            failed run ↗
+          </a>
+        )}
+      </Space>
     ));
   } else {
     items.push({ key: 'master-open', color: 'gray', children: <Text type="secondary">master running…</Text> });

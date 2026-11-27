@@ -9,6 +9,8 @@ const DEPLOY_COLUMNS: { column: string; definition: string }[] = [
   { column: 'steps', definition: 'TEXT NULL' },
   { column: 'workflowRef', definition: 'VARCHAR(255) NULL' },
   { column: 'apiVersion', definition: 'VARCHAR(16) NULL' },
+  { column: 'runUrl', definition: 'VARCHAR(255) NULL' },
+  { column: 'error', definition: 'TEXT NULL' },
 ];
 
 export default async function ensureDeployColumns(): Promise<string[]> {

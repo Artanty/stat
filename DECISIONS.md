@@ -1,5 +1,43 @@
 # DECISIONS.md
 
+## Task: timeline top padding (2026-11-27, 2)
+
+- Why: the first timeline item's title was partly clipped by the top of the
+  timeline block.
+- Change: style.css `.ant-timeline.ant-timeline-label` gains `padding-top: 4px`
+  (single shared rule — DeployTab + MiniPage both use the class). Build OK.
+  NOT deployed — rides along with the next stat -d.
+
+## Task: master run link + error text in the timeline (2026-11-27)
+
+### Plan (2026-11-27)
+- Why: (1) the master-start item links only to the workflow file — the user wants a link
+  to the EXACT run (…/actions/runs/<id>) plus the repo-wide actions list kept as 'all':
+  `api vN · <file> ↗ | all ↗ | run ↗`. (2) on master error the timeline shows only "last
+  passed step" — the user wants the actual error and/or a link to the failed run.
+- serf (both deploy.yml + deploy_v2.yml): "Set working directory" exports
+  DPL_RUN_URL = github.server_url/repository/actions/runs/run_id and resets
+  DPL_FAILED_STEP="; every real step's run block starts with
+  `echo "DPL_FAILED_STEP=${{ github.job }} / ${STEP_NAME}" >> $GITHUB_ENV` (STEP_NAME via
+  step env; first marker wins — the job dies right after); the 3 master send steps add
+  runUrl to the payload, and MASTER_ERROR gains an `error` field:
+  "master job failed[ at: <job> / <step>] (see the run log for details)".
+- stat back: runUrl VARCHAR(255) + error TEXT columns (ensure_deploy_columns), /add-event
+  extras, DeployEventDto/DeployRunDto wiring (runUrl run-level like workflowRef).
+- web: master-start item renders the 3-link row (run link only when the event carries
+  runUrl — old events simply drop it); master-error item renders the error text (event's
+  `error` column, code style) + 'failed run ↗' link.
+
+### Progress (2026-11-27)
+- DONE, verified: both workflows parse as YAML, every run block passes bash -n, marker
+  steps all carry STEP_NAME env, payloads carry runUrl (×3) + error (MASTER_ERROR).
+  back tsc clean, flow test green (18 checks), web tsc clean (only pre-existing
+  rc-picker) + parcel build OK.
+- Old runs unaffected: no runUrl → the 'run ↗' link drops, error column NULL →
+  master-error shows the legacy fallback text.
+- NOT deployed — needs serf commit + stat -d (deploy order: serf first so new runs
+  carry runUrl; stat -d adds the columns idempotently).
+
 ## Task: deploy API version in the run timeline (2026-11-26)
 
 ### Plan (2026-11-26)

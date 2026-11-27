@@ -22,6 +22,8 @@ export interface DeployEvent {
   commitMessage: string | null;
   workflowRef: string | null;
   apiVersion: string | null;
+  runUrl: string | null;
+  error: string | null;
 }
 
 export type DeployStage = 'FLOW_START' | 'FLOW_END' | 'FLOW_ERROR' | 'MASTER_START' | 'MASTER_END' | 'MASTER_ERROR' | 'SLAVE_START' | 'SLAVE_END' | 'SLAVE_ERROR'
@@ -45,6 +47,7 @@ export interface DeployRun {
   workflowRef: string | null;
   workflowFile: string;
   apiVersion: string;
+  runUrl: string | null;
   startDate: string;
   endDate: string;
   hasError: boolean;

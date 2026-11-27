@@ -19,6 +19,8 @@ html, body, #root {
 .ant-timeline.ant-timeline-label {
     width: 100%;
     box-sizing: border-box;
+    /* first item's title clips against the block top without this */
+    padding-top: 4px;
 }
 
 .ant-timeline .ant-timeline-item-label {

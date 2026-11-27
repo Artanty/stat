@@ -27,6 +27,8 @@ export interface DeployEventDto {
   commitMessage: string | null;
   workflowRef: string | null;
   apiVersion: string | null;
+  runUrl: string | null;
+  error: string | null;
 }
 
 // one execution attempt of a run — a retriggered run re-runs the whole workflow
@@ -49,6 +51,8 @@ export interface DeployRunDto {
   workflowRef: string | null;
   workflowFile: string;
   apiVersion: string;
+  // direct link to the serf master workflow run (…/actions/runs/<id>), sent since api v3
+  runUrl: string | null;
   startDate: string;
   endDate: string;
   hasError: boolean;
@@ -128,7 +132,7 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
   }
   // a run has up to ~6 events; fetch a window, group, then trim to the run limit
   queryParams.push(Math.max((limit || 50) * 8, 100));
-  const sql = `SELECT id, projectId, namespace, stage, isError, eventData, eventDate, workflow, workflowRunId, commitMessage, steps, workflowRef, apiVersion
+  const sql = `SELECT id, projectId, namespace, stage, isError, eventData, eventDate, workflow, workflowRunId, commitMessage, steps, workflowRef, apiVersion, runUrl, error
     FROM events WHERE ${conditions.join(' AND ')} ORDER BY id DESC LIMIT ?`;
 
   const [rows] = await pool.query(sql, queryParams);
@@ -139,6 +143,8 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
     steps: string | null;
     workflowRef: string | null;
     apiVersion: string | null;
+    runUrl: string | null;
+    error: string | null;
   })[];
 
   const byRun = new Map<string, DeployEventDto[]>();
@@ -159,6 +165,8 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
       commitMessage: row.commitMessage,
       workflowRef: row.workflowRef,
       apiVersion: row.apiVersion,
+      runUrl: row.runUrl ?? null,
+      error: row.error ?? null,
     };
     if (row.workflowRunId) {
       const list = byRun.get(row.workflowRunId) || [];
@@ -259,6 +267,7 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
       const workflowFile = workflowRef ? workflowRef.split('@')[0].split('/').pop() as string : '';
       // events predating the field were sent by deploy.yml = api v1
       const apiVersion = events.map((e) => e.apiVersion).find((v) => v) || '1';
+      const runUrl = events.map((e) => e.runUrl).find((v) => v) || null;
       return {
         workflowRunId: runId,
         projectId: first.projectId,
@@ -268,6 +277,7 @@ export async function fetchDeployRuns(pool: Pool, query: GetDeployRunsQuery = {}
         workflowRef,
         workflowFile,
         apiVersion,
+        runUrl,
         startDate: latest.startDate,
         endDate: last.eventDate,
         hasError: latest.hasError,
